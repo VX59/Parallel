@@ -3,7 +3,7 @@ import sys
 import time
 
 def method():
-    return "im a worker"     
+    return "hey world"     
 
 
 if __name__ == "__main__":

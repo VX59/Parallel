@@ -26,10 +26,8 @@ class Parallel(object):
         s.server.listen(0)
 
         s.receiver = threading.Thread(target=s.message_handler,name="worker module")
-        s.handler = threading.Thread(target=s.rpc_handler,name="worker module")
         s.receiver.start()
         time.sleep(1)
-        s.handler.start()
 
     def message_handler(s):
         while not s.quit:
@@ -59,6 +57,8 @@ class Worker(Parallel):
         super().__init__(address,port)
         s.chief = True
         s.module = module
+        s.handler = threading.Thread(target=s.rpc_handler,name="worker module")
+        s.handler.start()
 
     def join_network(s, address, port):
         if address != s.address or port != s.port:
@@ -67,9 +67,10 @@ class Worker(Parallel):
         else:
             print("this is supervisor")
 
-    def activate(s, module="default"):
+    def activate(s, name="default", data=None):
         if s.chief:
             for peer in s.contacts:
+                module = json.dumps({"name":name, "data":data})
                 s.sendRPC(s.contacts[peer][0],s.contacts[peer][1], "module-activate", module)
         else: 
             print("cannot rpc other workers (not chief)")
@@ -82,7 +83,8 @@ class Worker(Parallel):
                 s.mutex.release()
 
                 if message['mode'] == "module-activate":
-                    print(s.Module())
+                    module = json.loads(message['data'])
+                    print(s.Module(name=module['name'], data=module['data']))
                 
                 if message['mode'] == "join-request":
                     if s.chief:

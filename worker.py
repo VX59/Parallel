@@ -2,8 +2,10 @@ from protocol import Worker
 import sys
 import time
 
-def method():
-    return "hey world"     
+def method(**kwargs):
+    for key,value in kwargs.items():
+        print(key,value)
+    return "im a worker"     
 
 
 if __name__ == "__main__":
