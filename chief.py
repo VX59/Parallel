@@ -16,6 +16,5 @@ if __name__ == "__main__":
     time.sleep(0.5)
     print("supervisor", test.supervisor)
 
-    while True:
-        input()
-        test.activate()
+    test.webserver.new_directory("ballsack")
+    test.webserver.upload_arraylike("testfile","ballsack",[1,2,3,4,5,6,7,8,9,0])

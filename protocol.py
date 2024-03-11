@@ -51,6 +51,20 @@ class Parallel(object):
         recipient.close()
 
 import random
+import os
+import numpy as np
+
+class Webserver():
+    def __init__(w, address="http://rsenic-750-160qe"):
+        w.webserver = address
+        w.root = r"/var/www/html/"
+
+    def new_directory(w, name:str):
+        os.mkdir(w.root+name)
+
+    def upload_arraylike(w,name:str, directory:str, arraylike):
+        path = os.path.join(w.root, directory)
+        np.save(os.path.join(path,name), arraylike)
 
 class Worker(Parallel):
     def __init__(s, address:str,port:int, module):
@@ -59,6 +73,7 @@ class Worker(Parallel):
         s.module = module
         s.handler = threading.Thread(target=s.rpc_handler,name="worker module")
         s.handler.start()
+        s.webserver = Webserver()
 
     def join_network(s, address, port):
         if address != s.address or port != s.port:
