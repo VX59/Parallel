@@ -17,3 +17,7 @@ if __name__ == "__main__":
     time.sleep(0.5)
     test.join_network("rsenic-750-160qe",11030)
     print("supervisor", test.supervisor)
+
+    while True:
+        input()
+        test.activate()

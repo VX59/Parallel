@@ -3,7 +3,7 @@ import threading
 import json
 import time
 class RPCMessage(object):
-    def encode(sender:tuple[str,int], receiver:tuple[str,int], rpcMode, data)-> str:
+    def encode(sender, receiver, rpcMode, data)-> str:
         contents = {}
         contents["mode"] = rpcMode
         contents["sender"] = sender
@@ -115,6 +115,7 @@ class Worker(Parallel):
                         s.contacts[message['data']] = message['sender']
                         print(s.contacts)
 
+                    print(message['sender'])
                     s.sendRPC(message['sender'][0],int(message['sender'][1]),"join-accept",s.supervisor)
                 
                 if message['mode'] == "join-accept":                    
