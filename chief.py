@@ -14,7 +14,5 @@ if __name__ == "__main__":
 
     test = Worker(address,port,method)
     time.sleep(0.5)
+    test.join_network("rsenic-750-160qe",11030)
     print("supervisor", test.supervisor)
-
-    test.webserver.new_directory("ballsack")
-    test.webserver.upload_arraylike_local("testfile","ballsack",[1,2,3,4,5,6,7,8,9,0])
