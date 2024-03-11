@@ -53,16 +53,17 @@ class Parallel(object):
 import random
 import os
 import numpy as np
+import wget
 
 class Webserver():
-    def __init__(w, address="http://rsenic-750-160qe"):
-        w.webserver = address
+    def __init__(w, address="http://rsenic-750-160qe/"):
+        w.address = address
         w.root = r"/var/www/html/"
 
     def new_directory(w, name:str):
         os.mkdir(w.root+name)
 
-    def upload_arraylike(w,name:str, directory:str, arraylike):
+    def upload_arraylike_local(w,name:str, directory:str, arraylike):
         path = os.path.join(w.root, directory)
         np.save(os.path.join(path,name), arraylike)
 
@@ -71,15 +72,23 @@ class Worker(Parallel):
         super().__init__(address,port)
         s.chief = True
         s.module = module
+        s.id = random.randint(0,1e9)
         s.handler = threading.Thread(target=s.rpc_handler,name="worker module")
         s.handler.start()
-        s.webserver = Webserver()
+        s.webserveraddress="http://rsenic-750-160qe/"
+        s.downloads = str(s.id)+"_downloads"
+        os.mkdir(s.downloads)
+
+    def download_file(s,endpoint:str):
+        url = s.webserveraddress+endpoint
+        name = wget.download(url, s.downloads)
 
     def join_network(s, address, port):
         if address != s.address or port != s.port:
-            s.sendRPC(address,port,"join-request", random.randint(0,1e9))
+            s.sendRPC(address,port,"join-request", s.id)
         
         else:
+            s.webserver = Webserver()
             print("this is supervisor")
 
     def activate(s, name="default", data=None):

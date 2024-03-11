@@ -17,4 +17,4 @@ if __name__ == "__main__":
     print("supervisor", test.supervisor)
 
     test.webserver.new_directory("ballsack")
-    test.webserver.upload_arraylike("testfile","ballsack",[1,2,3,4,5,6,7,8,9,0])
+    test.webserver.upload_arraylike_local("testfile","ballsack",[1,2,3,4,5,6,7,8,9,0])
