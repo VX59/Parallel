@@ -5,7 +5,7 @@ import time
 def method(**kwargs):
     for key,value in kwargs.items():
         print(key,value)
-    return "im a worker"     
+    return "im in the network"     
 
 
 if __name__ == "__main__":
