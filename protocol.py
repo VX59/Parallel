@@ -67,6 +67,32 @@ class Webserver():
         path = os.path.join(w.root, directory)
         np.save(os.path.join(path,name), arraylike)
 
+class Client(Parallel):
+    def __init__(s, address:str,port:int):
+        super().__init__(address,port)
+        s.handler = threading.Thread(target=s.rpc_handler,name="worker module")
+        s.handler.start()
+        s.contact = None
+
+    def join_network(s, address, port):
+        if address != s.address or port != s.port:
+            s.sendRPC(address,port,"client-request", 0)
+
+    def rpc_handler(s):
+        while not s.quit:
+            if len(s.channel) > 0:
+                s.mutex.acquire()
+                message = s.channel.pop()
+                s.mutex.release()
+                if message['mode'] == "client-accept":
+                    print("accepted", message['data'])
+                    s.contact = message['sender']
+
+    def activate(s, name="default", data=None):
+        module = json.dumps({"name":name, "data":data})
+        s.sendRPC(s.contact[0],s.contact[1], "module-relay", module)
+        
+
 class Worker(Parallel):
     def __init__(s, address:str,port:int, module):
         super().__init__(address,port)
@@ -76,8 +102,9 @@ class Worker(Parallel):
         s.handler = threading.Thread(target=s.rpc_handler,name="worker module")
         s.handler.start()
         s.webserveraddress="http://rsenic-750-160qe/"
-        s.downloads = str(s.id)+"_downloads"
-        os.mkdir(s.downloads)
+        s.downloads = "downloads"
+        if not os.path.isdir("downloads"):
+            os.mkdir(s.downloads)
 
     def download_file(s,endpoint:str):
         url = s.webserveraddress+endpoint
@@ -93,10 +120,11 @@ class Worker(Parallel):
 
     def activate(s, name="default", data=None):
         if s.chief:
+            module = json.dumps({"name":name, "data":data})
+            s.Module(name=module[0], data=module[1])
             for peer in s.contacts:
-                module = json.dumps({"name":name, "data":data})
                 s.sendRPC(s.contacts[peer][0],s.contacts[peer][1], "module-activate", module)
-        else: 
+        else:
             print("cannot rpc other workers (not chief)")
 
     def rpc_handler(s):
@@ -105,6 +133,13 @@ class Worker(Parallel):
                 s.mutex.acquire()
                 message = s.channel.pop()
                 s.mutex.release()
+
+                if message['mode'] == "client-request":
+                    print(message['sender'], "requested")
+                    s.sendRPC(message['sender'][0],int(message['sender'][1]),"client-accept",s.supervisor)
+
+                if message['mode'] == 'module-relay':
+                    s.activate(name=message['data'][0],data=message['data'][1])
 
                 if message['mode'] == "module-activate":
                     module = json.loads(message['data'])

@@ -2,8 +2,10 @@ from protocol import Worker
 import sys
 import time
 
-def method():
-    return "hey world"     
+def method(**kwargs):
+    for key,value in kwargs.items():
+        print(key,value)
+    return "im in the network" 
 
 
 if __name__ == "__main__":
@@ -15,9 +17,5 @@ if __name__ == "__main__":
     test = Worker(address,port,method)
 
     time.sleep(0.5)
-    test.join_network("rsenic-750-160qe",11030)
+    test.join_network("192.168.1.161",11030)
     print("supervisor", test.supervisor)
-
-    while True:
-        input()
-        test.activate()
