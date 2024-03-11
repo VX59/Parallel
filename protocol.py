@@ -22,7 +22,7 @@ class Parallel(object):
         s.contacts = {}
 
         s.server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-        s.server.bind((s.address, s.port))
+        s.server.bind(('0.0.0.0', s.port))
         s.server.listen(0)
 
         s.receiver = threading.Thread(target=s.message_handler,name="worker module")
@@ -34,7 +34,6 @@ class Parallel(object):
             print("accepting connections")
             client, _ = s.server.accept() # block thread until its received a connection
             rpcMsg = json.loads(client.recv(1024).decode("utf-8"))
-            print(rpcMsg)
             s.mutex.acquire()
             s.channel.append(rpcMsg)
             s.mutex.release()
@@ -86,7 +85,6 @@ class Worker(Parallel):
 
     def join_network(s, address, port):
         if address != s.address or port != s.port:
-            print("joining")
             s.sendRPC(address,port,"join-request", s.id)
         
         else:
