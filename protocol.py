@@ -120,10 +120,12 @@ class Worker(Parallel):
 
     def activate(s, name="default", data=None):
         if s.chief:
-            module = json.dumps({"name":name, "data":data})
-            s.Module(name=module[0], data=module[1])
-            for peer in s.contacts:
-                s.sendRPC(s.contacts[peer][0],s.contacts[peer][1], "module-activate", module)
+            module_inputs = {"name":name, "data":data}         
+            print(s.Module(name=module_inputs['name'], data=module_inputs['data']))
+            
+            if len(s.contacts) > 0:
+                for peer in s.contacts:
+                    s.sendRPC(s.contacts[peer][0],s.contacts[peer][1], "module-activate", json.dumps(module))
         else:
             print("cannot rpc other workers (not chief)")
 
@@ -139,7 +141,8 @@ class Worker(Parallel):
                     s.sendRPC(message['sender'][0],int(message['sender'][1]),"client-accept",s.supervisor)
 
                 if message['mode'] == 'module-relay':
-                    s.activate(name=message['data'][0],data=message['data'][1])
+                    module = json.loads(message['data'])
+                    s.activate(name=module['name'],data=module['data'])
 
                 if message['mode'] == "module-activate":
                     module = json.loads(message['data'])
