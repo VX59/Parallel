@@ -2,6 +2,7 @@ from protocol import Client
 import sys
 import time   
 
+import numpy as np
 
 if __name__ == "__main__":
     args = sys.argv
@@ -11,11 +12,11 @@ if __name__ == "__main__":
 
     test = Client(address,port)
 
-    host = "rsenic-750-160qe"
-    test.join_network("192.168.1.161",11030)
+    hostname = "rsenic-750-160qe"
+    test.join_network(hostname,11030)
     time.sleep(0.5)
     print("contact", test.contact)
 
     while True:
         input()
-        test.activate()
+        test.activate("main", list(10*np.random.random(10)))
