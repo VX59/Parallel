@@ -73,6 +73,7 @@ class Client(Parallel):
         s.handler = threading.Thread(target=s.rpc_handler,name="worker module")
         s.handler.start()
         s.contact = None
+        s.webserver = None
 
     def join_network(s, address, port):
         if address != s.address or port != s.port:
@@ -86,7 +87,14 @@ class Client(Parallel):
                 s.mutex.release()
                 if message['mode'] == "client-accept":
                     print("accepted", message['data'])
-                    s.contact = message['sender']
+                    data = json.loads(message['data'])
+                    s.contact = data['super']
+                    s.webserver = data['web']
+
+    def upload_arraylike(s, name, directory, arraylike):
+        data = {"name":name, "directory":directory, "data":arraylike}
+        s.sendRPC(s.contact[0],s.contact[1], "send-data", json.dumps(data))
+
 
     def activate(s, name="default", data=None):
         module = json.dumps({"name":name, "data":data})
@@ -125,7 +133,7 @@ class Worker(Parallel):
             
             if len(s.contacts) > 0:
                 for peer in s.contacts:
-                    s.sendRPC(s.contacts[peer][0],s.contacts[peer][1], "module-activate", json.dumps(module))
+                    s.sendRPC(s.contacts[peer][0],s.contacts[peer][1], "module-activate", json.dumps(module_inputs))
         else:
             print("cannot rpc other workers (not chief)")
 
@@ -136,10 +144,19 @@ class Worker(Parallel):
                 message = s.channel.pop()
                 s.mutex.release()
 
+                mode = message['mode']
+
+                if mode == "send-data":
+                    message_data = json.loads(message['data'])
+                    data = message_data['data']
+                    print(type(data), data)
+                    s.webserver.upload_arraylike_local(data['name'],data['directory'],data)
+
                 if message['mode'] == "client-request":
                     print(message['sender'], "requested")
-                    s.sendRPC(message['sender'][0],int(message['sender'][1]),"client-accept",s.supervisor)
-
+                    data = {"super":s.supervisor, "web":s.webserveraddress}
+                    s.sendRPC(message['sender'][0],int(message['sender'][1]),"client-accept",json.dumps(data))
+                
                 if message['mode'] == 'module-relay':
                     module = json.loads(message['data'])
                     s.activate(name=module['name'],data=module['data'])
