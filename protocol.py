@@ -20,6 +20,7 @@ class Parallel():
         s.mutex = threading.Lock()
         s.supervisor:tuple[str,int] = (address,port)
         s.contacts = {}
+        s.webserveraddress="http://rsenic-750-160qe/"
 
         s.server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         s.server.bind(('0.0.0.0', s.port))
@@ -73,13 +74,14 @@ class Task():   # make later
         return
     
 import webbrowser
+from rpc_directory import RPC
+
 class Client(Parallel):
     def __init__(s, address:str,port:int):
         super().__init__(address,port)
         s.handler = threading.Thread(target=s.rpc_handler,name="worker module")
         s.handler.start()
         s.contact = None
-        s.webserver = None
         s.ui = "interface"
         s.downloads = "/home/rsenic/Parallel/downloads"
 
@@ -88,12 +90,13 @@ class Client(Parallel):
             s.sendRPC(address,port,"client-request", 0)
 
     def open_ui(s):
-        if s.webserver != None:
-            webbrowser.open_new(s.webserver+s.ui)
+        if s.webserveraddress != None:
+            webbrowser.open_new(s.webserveraddress+s.ui)
         else:
             print("I dont have a webserver to access yet")
 
     def rpc_handler(s):
+        rpc_directory = RPC()
         while not s.quit:
             if len(s.channel) > 0:
                 s.mutex.acquire()
@@ -101,13 +104,7 @@ class Client(Parallel):
                 s.mutex.release()
 
                 mode = message['mode']
-
-                if mode == "client-accept":
-                    print("accepted", message['data'])
-                    data = json.loads(message['data'])
-                    s.contact = data['super']
-                    s.webserver = data['web']
-                    s.open_ui()
+                rpc_directory(mode)
 
                 if mode == "results-deliver":
                     print(message['data'])
@@ -117,8 +114,7 @@ class Client(Parallel):
         s.sendRPC(s.contact[0],s.contact[1], "send-data", json.dumps(data))
 
     def download_file(s,endpoint='results'):
-        url = s.webserver+endpoint
-        name = wget.download(url, s.downloads)
+        name = wget.download(endpoint, s.downloads)
         print('\n')
         return name
     
@@ -136,16 +132,21 @@ class Worker(Parallel):
         s.handler = threading.Thread(target=s.rpc_handler,name="worker module")
         s.handler.start()
         s.client = None
-        s.webserveraddress="http://rsenic-750-160qe/"
         s.downloads = "/home/rsenic/Parallel/downloads"
         if not os.path.isdir(s.downloads):
             os.mkdir(s.downloads)
 
     def download_file(s,endpoint:str):
-        url = s.webserveraddress+endpoint
-        name = wget.download(url, s.downloads)
-        print('\n')
-        return name
+        filename = endpoint.split('/')[-1]
+        print(filename)
+        if not filename in os.listdir(s.downloads):
+            address = s.webserveraddress+endpoint
+            name = wget.download(address, s.downloads)
+            print('\n')
+            return name
+        else:
+            print("found in cache") 
+            return filename
 
     def join_network(s, address, port):
         if address != s.address or port != s.port:
@@ -193,7 +194,6 @@ class Worker(Parallel):
                 
                 if mode == 'module-relay':   # data contains the endpoint
                     module = json.loads(message['data'])
-                    print(module)
                     s.activate(name=module['name'],data=module['data'])
 
                 if mode == "module-activate":
@@ -205,7 +205,7 @@ class Worker(Parallel):
                     s.webserver.new_directory("results")
                     s.webserver.upload_arraylike_local("job",
                                                         "results",
-                                                        json.loads(message['data'])['data'])
+                                                        message['data'])
                     
                     s.sendRPC(s.client[0],int(s.client[1]),"results-deliver",message['data'])
 
@@ -231,8 +231,5 @@ class Worker(Parallel):
         filepath = os.path.join(s.downloads,filename)
         time.sleep(0.25)
         data = np.load(filepath)
-        print(data, type(data))
-
         results = s.module(data)
-        os.remove(filepath)
         return results
