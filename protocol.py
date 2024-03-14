@@ -55,6 +55,7 @@ import random
 import os
 import numpy as np
 import wget
+import requests
 
 class Webserver():
     def __init__(w, address="http://rsenic-750-160qe/"):
@@ -65,16 +66,17 @@ class Webserver():
         if not os.path.isdir(os.path.join(w.root,directory)):
             os.mkdir(os.path.join(w.root,directory))
 
-    def upload_arraylike_local(w,name:str, directory:str, arraylike):
-        path = os.path.join(w.root, directory)
-        np.save(os.path.join(path,name), arraylike)
+    def upload_module(w, name):
+        path = "modules/"+name
+        file = {"file": open(path, "rb")}
+        response = requests.post(w.address+"modules", files=file)
+        print(response)
 
 class Task():   # make later
     def __init__(t):
         return
     
 import webbrowser
-from rpc_directory import RPC
 
 class Client(Parallel):
     def __init__(s, address:str,port:int):
@@ -96,7 +98,6 @@ class Client(Parallel):
             print("I dont have a webserver to access yet")
 
     def rpc_handler(s):
-        rpc_directory = RPC()
         while not s.quit:
             if len(s.channel) > 0:
                 s.mutex.acquire()
@@ -104,7 +105,13 @@ class Client(Parallel):
                 s.mutex.release()
 
                 mode = message['mode']
-                rpc_directory(mode)
+
+                if mode == "client-accept":
+                    print("accepted", message['data'])
+                    data = json.loads(message['data'])
+                    s.contact = data['super']
+                    s.webserveraddress = data['web']
+                    s.open_ui()
 
                 if mode == "results-deliver":
                     print(message['data'])
@@ -182,9 +189,7 @@ class Worker(Parallel):
                     if s.chief:
                         message_data = json.loads(message['data'])
                         s.webserver.new_directory(message_data['directory'])
-                        s.webserver.upload_arraylike_local(message_data['name'],
-                                                            message_data['directory'],
-                                                            message_data['data'])
+                        s.webserver.upload_arraylike_local(message_data['name'], message_data['directory'], message_data['data'])
 
                 if mode == "client-request":
                     print(message['sender'], "requested")
@@ -203,9 +208,7 @@ class Worker(Parallel):
                 
                 if mode == "results-relay":
                     s.webserver.new_directory("results")
-                    s.webserver.upload_arraylike_local("job",
-                                                        "results",
-                                                        message['data'])
+                    s.webserver.upload_arraylike_local("job", "results", message['data'])
                     
                     s.sendRPC(s.client[0],int(s.client[1]),"results-deliver",message['data'])
 
@@ -226,9 +229,13 @@ class Worker(Parallel):
                     else:
                         s.supervisor = message['data']
 
+    def LoadModule(s, **kwargs):
+        scriptname = s.download_file(kwargs['data'])
+
+
     def Module(s, **kwargs):
-        filename = s.download_file(kwargs['data'])
-        filepath = os.path.join(s.downloads,filename)
+        dataname = s.download_file(kwargs['data'])
+        filepath = os.path.join(s.downloads,dataname)
         time.sleep(0.25)
         data = np.load(filepath)
         results = s.module(data)
