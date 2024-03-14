@@ -111,6 +111,7 @@ class Client(Parallel):
                     data = json.loads(message['data'])
                     s.contact = data['super']
                     s.webserveraddress = data['web']
+                    s.webserver = Webserver()
                     s.open_ui()
 
                 if mode == "results-deliver":

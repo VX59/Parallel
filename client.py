@@ -17,13 +17,6 @@ if __name__ == "__main__":
     time.sleep(0.5)
     print("contact", test.contact)
 
-    name = "test.npy"
-    directory = "jobs"
+    module_name = "test.py"
 
-    testarr = list(10*np.random.random(10))
-    test.upload_arraylike(name, directory,testarr)
-    endpoint = directory+"/"+name
-
-    while True:
-        input()
-        test.activate("main", endpoint)
+    test.webserver.upload_module(module_name)
