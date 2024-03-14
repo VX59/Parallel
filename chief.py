@@ -3,8 +3,8 @@ import sys
 import socket
 import time
 
-def method(**kwargs):
-    data = kwargs['data']
+def method(data):
+    print(data)
     return sum(data)
 
 if __name__ == "__main__":
