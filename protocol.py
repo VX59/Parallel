@@ -88,7 +88,7 @@ class Client(Parallel):
 
     def join_network(s, address, port):
         if address != s.address or port != s.port:
-            s.sendRPC(address,port,"client-request", 0)
+            s.sendRPC(address,port,"cl-request", 0)
 
     def open_ui(s):
         if s.webserveraddress != None:
@@ -105,7 +105,7 @@ class Client(Parallel):
 
                 mode = message['mode']
 
-                if mode == "client-accept":
+                if mode == "cl-accept":
                     print("accepted", message['data'])
                     data = json.loads(message['data'])
                     s.contact = data['super']
@@ -118,13 +118,16 @@ class Client(Parallel):
 
     def upload_arraylike(s, name, directory, arraylike):
         data = {"name":name, "directory":directory, "data":arraylike}
-        s.sendRPC(s.contact[0],s.contact[1], "send-data", json.dumps(data))
+        s.sendRPC(s.contact[0],s.contact[1], "data-load", json.dumps(data))
 
     def download_file(s,endpoint='results'):
         name = wget.download(endpoint, s.downloads)
         print('\n')
         return name
     
+    def module_upload(name):
+        module = json.dumps({"name":name})
+
     def activate(s, name="default", data=None):
         module = json.dumps({"name":name, "data":data})
         s.sendRPC(s.contact[0],s.contact[1], "module-relay", module)
