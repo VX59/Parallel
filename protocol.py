@@ -2,6 +2,8 @@ import socket
 import threading
 import json
 import time
+from api import ModuleLoad
+
 class RPCMessage():
     def encode(sender, receiver, rpcMode, data)-> str:
         contents = {}
@@ -54,10 +56,11 @@ class Parallel():
 import random
 import os
 import numpy as np
+import importlib
+import sys
 import wget
 import requests
 import webbrowser
-
 
 class Webserver():
     def __init__(w, address="http://rsenic-750-160qe/"):
@@ -73,11 +76,6 @@ class Webserver():
         file = {"file": open(path, "rb")}
         response = requests.post(w.address+"modules", files=file)
         print(response)
-
-class Task():   # make later
-    def __init__(t):
-        return
-    
 
 class Client(Parallel):
     def __init__(s, address:str,port:int):
@@ -200,8 +198,10 @@ class Worker(Parallel):
                     s.sendRPC(message['sender'][0],int(message['sender'][1]),"client-accept",json.dumps(data))
                 
                 if mode == 'mod-load':   # data contains the endpoint
-                    module = json.loads(message['data'])
-                    s.activate(name=module['name'],data=module['data'])
+                    modulename = json.loads(message['data'])
+                    print(modulename)
+                    module = importlib.import_module(modulename['data'])
+                    s.module = getattr(module, "Module")
 
                 if mode == "activate":
                     module = json.loads(message['data'])
@@ -241,4 +241,5 @@ class Worker(Parallel):
         time.sleep(0.25)
         data = np.load(filepath)
         results = s.module(data)
+        print(results)
         return results

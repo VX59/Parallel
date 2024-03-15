@@ -23,7 +23,7 @@ func data_load(w http.ResponseWriter, r *http.Request) {
 	}
 	defer file.Close()
 
-	newFile, err := os.Create("/ParallelWebServer/tasks/" + handler.Filename)
+	newFile, err := os.Create("~/ParallelWebServer/tasks/" + handler.Filename)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
@@ -53,8 +53,9 @@ func module_load(w http.ResponseWriter, r *http.Request) {
 	}
 	defer file.Close()
 
-	newFile, err := os.Create("/ParallelWebServer/modules/" + handler.Filename)
+	newFile, err := os.Create("/var/www/html/modules" + handler.Filename)
 	if err != nil {
+		print(err.Error())
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
@@ -62,7 +63,8 @@ func module_load(w http.ResponseWriter, r *http.Request) {
 
 	_, err = io.Copy(newFile, file)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		print(err.Error())
+		//http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
