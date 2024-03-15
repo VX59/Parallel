@@ -56,6 +56,8 @@ import os
 import numpy as np
 import wget
 import requests
+import webbrowser
+
 
 class Webserver():
     def __init__(w, address="http://rsenic-750-160qe/"):
@@ -76,7 +78,6 @@ class Task():   # make later
     def __init__(t):
         return
     
-import webbrowser
 
 class Client(Parallel):
     def __init__(s, address:str,port:int):
@@ -186,34 +187,34 @@ class Worker(Parallel):
 
                 mode = message['mode']
 
-                if mode == "send-data":
-                    if s.chief:
-                        message_data = json.loads(message['data'])
-                        s.webserver.new_directory(message_data['directory'])
-                        s.webserver.upload_arraylike_local(message_data['name'], message_data['directory'], message_data['data'])
+                if mode == "data-load":
+                    message_data = json.loads(message['data'])
+                    s.webserver.new_directory(message_data['directory'])
+                    s.webserver.upload_arraylike_local(message_data['name'], message_data['directory'], message_data['data'])
 
-                if mode == "client-request":
+
+                if mode == "cl-request":
                     print(message['sender'], "requested")
                     data = {"super":s.supervisor, "web":s.webserveraddress}
                     s.client = message['sender']
                     s.sendRPC(message['sender'][0],int(message['sender'][1]),"client-accept",json.dumps(data))
                 
-                if mode == 'module-relay':   # data contains the endpoint
+                if mode == 'mod-load':   # data contains the endpoint
                     module = json.loads(message['data'])
                     s.activate(name=module['name'],data=module['data'])
 
-                if mode == "module-activate":
+                if mode == "activate":
                     module = json.loads(message['data'])
                     results = s.Module(name=module['name'], data=module['data'])
                     s.sendRPC(s.supervisor[0],s.supervisor[1],"results-relay", results)
                 
-                if mode == "results-relay":
+                if mode == "done":
                     s.webserver.new_directory("results")
                     s.webserver.upload_arraylike_local("job", "results", message['data'])
                     
                     s.sendRPC(s.client[0],int(s.client[1]),"results-deliver",message['data'])
 
-                if mode == "join-request":
+                if mode == "wk-join":
                     if s.chief:
                         s.contacts[message['data']] = message['sender']
                         print(s.contacts)
@@ -221,7 +222,7 @@ class Worker(Parallel):
                     print(message['sender'])
                     s.sendRPC(message['sender'][0],int(message['sender'][1]),"join-accept",s.supervisor)
                 
-                if mode == "join-accept":                    
+                if mode == "wk-accept":                    
                     if message['data'] != s.supervisor:
                         s.chief = False
 
