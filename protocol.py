@@ -15,8 +15,6 @@ class Parallel():
         s.address:str = address
         s.port:int = port
         s.rpcs:dict = rpcs
-
-        s.channel = []
         s.quit = False
         
         s.server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -32,16 +30,13 @@ class Parallel():
             print(s.address +" is accepting connections on port " + str(s.port))
             client, _ = s.server.accept()
             message = json.loads(client.recv(1024).decode("utf-8"))
-
             s.rpcs[message['mode']](message)
-
             client.close()            
 
     # connect to a listening socket, then serialize message and send it
     def send_message(s,address:str,port:int, mode:str, data:dict):
         recipient = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         recipient.connect((address,port))
-    
         message = Message.encode((s.address,s.port),
                                         (address,port),mode, data)
         recipient.send(message)
