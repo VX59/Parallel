@@ -113,7 +113,7 @@ class Chief(Parallel):
         worker_port = int(message['sender'][1])
         s.workers[worker_address] = worker_port
         print("contacts", len(s.workers),"\n", s.workers)
-        data = {"supervisor":(s.address, s.port)}
+        data = {"supervisor":(s.address, s.port), "web":s.webserver.address}
         s.send_message(worker_address,worker_port,"worker-accept",data)
     
     def activate(s, message:dict):
@@ -125,15 +125,16 @@ class Worker(Parallel):
         rpcs  = {"worker-accept": s.worker_accept,
                  "done": s.done,
                  "activate": s.activate}
-        s.supervisor = None
         super().__init__(address, port, rpcs)
-        
+        s.supervisor = None
+        s.webserver:Webserver = None
 
     def join_network(s, address, port):
         s.send_message(address,port,"worker-join", None)
 
     def worker_accept(s, message:dict):
-            s.supervisor = message['data']
+            s.supervisor = message['data']['supervisor']
+            s.webserver = Webserver(address=message['data']['web'])
             print(s.supervisor)
 
     def done(s, message:dict):
