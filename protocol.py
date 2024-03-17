@@ -66,6 +66,14 @@ class Webserver():
         else:
             print("found in cache") 
             return filename
+        
+    def upload_module(w, name):
+        url = 'http://'+w.address+'e:8080/interface/module-post'
+        data = {'file': open(os.getcwd()+"/modules/"+name+".py", 'rb')}
+        response = requests.post(url, files=data)
+        print(response)
+        if response.status_code != 200:
+            print("Error:", response.status_code)
 
 class Client(Parallel):
     def __init__(s, address:str,port:int):
@@ -81,24 +89,14 @@ class Client(Parallel):
         data = message['data']
         s.contact = data['contact']
         s.webserver = Webserver(address=data['web'])
-
-    def load_module(s, name):
-        s.send_message(s.contact[0],s.contact[1], "mod-load", {"name":name})
     
-    def upload_module(s, name):
-        url = 'http://rsenic-750-160qe:8080/interface/module-post'
-        data = {'file': open(os.getcwd()+"/modules/"+name+".py", 'rb')}
-        response = requests.post(url, files=data)
-        print(response)
-        if response.status_code != 200:
-            print("Error:", response.status_code)
 
-import subprocess
 class Chief(Parallel):
     # creates a new group and start a webserver. start a single worker on the same machine
     def __init__(s, address:str, port:int):
         rpcs = {"client-connect":s.client_connect,
-                "worker-join":s.worker_join}
+                "worker-join":s.worker_join,
+                "activate":s.activate}
         
         super().__init__(address, port, rpcs)
         s.webserver = Webserver(address="http://"+address+"/")
@@ -119,6 +117,10 @@ class Chief(Parallel):
         print("contacts", len(s.workers),"\n", s.workers)
         data = {"supervisor":(s.address, s.port)}
         s.send_message(worker_address,worker_port,"worker-accept",data)
+    
+    def activate(s, message:dict):
+        # to do
+        return
 
 class Worker(Parallel):
     def __init__(s, address:str,port:int):
