@@ -1,11 +1,7 @@
-from protocol import Worker
+from protocol import Chief
 import sys
 import socket
 import time
-
-def method(data):
-    print(data)
-    return sum(data)
 
 if __name__ == "__main__":
     args = sys.argv
@@ -13,8 +9,5 @@ if __name__ == "__main__":
     address = sys.argv[1]
     port = int(sys.argv[2])
 
-    test = Worker(address,port,method)
+    test = Chief(address,port)
     hostname = socket.gethostname()
-    time.sleep(0.5)
-    test.join_network(hostname,11030)
-    print("supervisor", test.supervisor)

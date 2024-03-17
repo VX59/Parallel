@@ -10,14 +10,9 @@ if __name__ == "__main__":
     address = sys.argv[1]
     port = int(sys.argv[2])
 
-    test = Client(address,port)
+    client = Client(address,port)
 
-    hostname = "rsenic-750-160qe"
-    test.join_network(hostname,11030)
+    hostname = "jacob"
+    client.connect(hostname,11030)
     time.sleep(1)
-    print("contact", test.contact)
-
-    module_name = "test"
-
-    #test.upload_module(module_name)
-    test.load_module(module_name)
+    print("contact", client.contact)

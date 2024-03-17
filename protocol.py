@@ -30,11 +30,11 @@ class Parallel():
     # block thread until receiving a connection, deserialize message and map to an rcp
     def message_handler(s):
         while not s.quit:
-            print(s.address +" is accepting connections on port" + s.port)
+            print(s.address +" is accepting connections on port " + str(s.port))
             client, _ = s.server.accept()
             message = json.loads(client.recv(1024).decode("utf-8"))
 
-            s.rpcs[message['mode']]()
+            s.rpcs[message['mode']](message)
 
             client.close()            
 
@@ -48,10 +48,7 @@ class Parallel():
         recipient.send(message)
         recipient.close()
 
-import random
 import os
-import numpy as np
-import importlib
 import wget
 import requests
 
@@ -72,21 +69,17 @@ class Webserver():
 
 class Client(Parallel):
     def __init__(s, address:str,port:int):
-
         rpcs = {"client-accept":s.client_accept}
-
-        super().__init__(address,port, rpcs)
-
         s.contact = None
-        s.downloads = "/home/rsenic/Parallel/downloads"
+        super().__init__(address,port, rpcs)
 
     def connect(s, address, port):
         s.send_message(address,port,"client-connect", None)
 
     def client_accept(s,message:dict):
         print("accepted", message['data'])
-        data = json.loads(message['data'])
-        s.contact = data['supervisor']
+        data = message['data']
+        s.contact = data['contact']
         s.webserver = Webserver(address=data['web'])
 
     def load_module(s, name):
@@ -104,19 +97,18 @@ import subprocess
 class Chief(Parallel):
     # creates a new group and start a webserver. start a single worker on the same machine
     def __init__(s, address:str, port:int):
-        rpcs = {"client-request":s.client_request,
+        rpcs = {"client-connect":s.client_connect,
                 "worker-join":s.worker_join}
-        super().__init__(address, port, rpcs)
         
-        subprocess.run(["go run webserver/server.go".split()])
-        subprocess.run(["python worker.py "+address+ " "+ str(port)])
+        super().__init__(address, port, rpcs)
         s.webserver = Webserver(address="http://"+address+"/")
-        s.workers = []
-        s.client = None
+        s.workers = {}
+        s.client = None      
 
-    def client_request(s, message:dict):
-        print(message['sender'], "requested")
-        data = {"super":(s.address, s.port), "web":s.webserver.address}
+    # rpc events are triggered by the messagehandler
+    def client_connect(s, message:dict):
+        print(message['sender'], "requested to access the group")
+        data = {"contact":(s.address, s.port), "web":s.webserver.address}
         s.client = message['sender']
         s.send_message(s.client[0],int(s.client[1]),"client-accept",data)
 
@@ -124,15 +116,16 @@ class Chief(Parallel):
         worker_address = message['sender'][0]
         worker_port = int(message['sender'][1])
         s.workers[worker_address] = worker_port
-        print(s.workers)
-
-        s.send_message(worker_address,worker_port,"worker-accept",{"supervisor":(s.address, s.port)})
+        print("contacts", len(s.workers),"\n", s.workers)
+        data = {"supervisor":(s.address, s.port)}
+        s.send_message(worker_address,worker_port,"worker-accept",data)
 
 class Worker(Parallel):
     def __init__(s, address:str,port:int):
         rpcs  = {"worker-accept": s.worker_accept,
                  "done": s.done,
                  "activate": s.activate}
+        s.supervisor = None
         super().__init__(address, port, rpcs)
         
 
