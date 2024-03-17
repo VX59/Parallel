@@ -10,7 +10,7 @@ class Message():
         return json.dumps(contents).encode("utf-8")
 
 class Parallel():
-    # create a socket listener, then create message handler and rpc handler threads
+    # create a socket listener, then create message handler
     def __init__(s,address:str,port:int, rpcs:dict):
         s.address:str = address
         s.port:int = port
@@ -18,7 +18,6 @@ class Parallel():
 
         s.channel = []
         s.quit = False
-        s.mutex = threading.Lock()
         
         s.server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         s.server.bind(('0.0.0.0', s.port))
@@ -88,8 +87,7 @@ class Client(Parallel):
         print("accepted", message['data'])
         data = message['data']
         s.contact = data['contact']
-        s.webserver = Webserver(address=data['web'])
-    
+        s.webserver = Webserver(address=data['web']) 
 
 class Chief(Parallel):
     # creates a new group and start a webserver. start a single worker on the same machine
