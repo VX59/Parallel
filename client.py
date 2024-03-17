@@ -14,9 +14,10 @@ if __name__ == "__main__":
 
     hostname = "rsenic-750-160qe"
     test.join_network(hostname,11030)
-    time.sleep(0.5)
+    time.sleep(1)
     print("contact", test.contact)
 
-    module_name = "test.py"
+    module_name = "test"
 
-    test.webserver.upload_module(module_name)
+    #test.upload_module(module_name)
+    test.load_module(module_name)
