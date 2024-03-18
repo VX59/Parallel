@@ -60,18 +60,17 @@ class Chief(Parallel):
 
         httpd =  http.server.HTTPServer(("", 11050), web_server)
         
-        print(address, " is chief on 11050")
-        httpd.serve_forever()
-
-        s.workers = {}
+        s.workers = []
         s.client = None
+        print(address, " is chief on 11050")
+        httpd.serve_forever()   # blocks thread and listen for connections
 
     # rpc events are triggered by the messagehandler
     # connect to the client
 
     def client_connect(s, message:dict):
         print(message['sender'], "requested to access the group")
-        data = {"contact":(s.address, s.port), "web":s.webserver.address}
+        data = {"contact":(s.address, s.port), "web":1234}
         s.client = message['sender']
         s.send_message(s.client[0],int(s.client[1]),"client-accept",data)
 
@@ -79,9 +78,9 @@ class Chief(Parallel):
     def worker_join(s, message:dict):
         worker_address = message['sender'][0]
         worker_port = int(message['sender'][1])
-        s.workers[worker_address] = worker_port
+        s.workers.append((worker_address,worker_port))
         print("contacts", len(s.workers),"\n", s.workers)
-        data = {"supervisor":(s.address, s.port), "web":s.webserver.address}
+        data = {"supervisor":(s.address, s.port), "web":1234}
         s.send_message(worker_address,worker_port,"worker-accept",data)
     
     # fetch modules for splitting data and merging results
@@ -110,8 +109,11 @@ import socket
 if __name__ == "__main__":
     args = sys.argv
 
-    address = sys.argv[1]
-    port = int(sys.argv[2])
+    if len(args) == 1:
+        address:str = socket.gethostname()
+        port = 11030
+    else:
+        address = sys.argv[1]
+        port = int(sys.argv[2])
 
     test = Chief(address,port)
-    hostname = socket.gethostname()
