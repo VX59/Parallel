@@ -6,29 +6,6 @@ import os
 import http.server
 import socketserver
 
-class web_client():
-    def __init__(w, address:str):
-        w.address = address
-        
-    def download_file(w,endpoint:str, download_path:str):
-        remote_path = w.address+endpoint
-        filename = remote_path.split('/')[-1]
-        print(filename)
-        if not filename in os.listdir(download_path):
-            name = wget.download(remote_path, download_path)
-            return name
-        else:
-            print("found in cache") 
-            return filename
-        
-    def upload_module(w, name):
-        url = 'http://'+w.address+':8080/interface/module-post'
-        data = {'file': open(os.getcwd()+"/modules/"+name+".py", 'rb')}
-        response = requests.post(url, files=data)
-        print(response)
-        if response.status_code != 200:
-            print("Error:", response.status_code)
-
 class web_server(http.server.BaseHTTPRequestHandler):
     def do_GET(self):
         self.send_response(200)
@@ -47,7 +24,7 @@ class web_server(http.server.BaseHTTPRequestHandler):
         content_length = int(self.headers['Content-Length'])
         post_data = self.rfile.read(content_length)
         
-        filename = self.headers['Filename']
+        filename = "testpost.npy"
         with open(filename, 'wb') as f:
             f.write(post_data)
         
@@ -68,8 +45,8 @@ class Chief(Parallel):
         super().__init__(address, port, rpcs)
 
         os.chdir("resources")
-        with socketserver.TCPServer(("", 11050), http.server.BaseHTTPRequestHandler) as httpd:
-            print(address, " is serving cum on 11050")
+        with http.server.HTTPServer(("", 11050), web_server) as httpd:
+            print(address, " is chief on 11050")
             httpd.serve_forever() 
 
         s.workers = {}
