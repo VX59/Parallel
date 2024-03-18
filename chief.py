@@ -59,13 +59,9 @@ class Chief(Parallel):
         super().__init__(address, port, rpcs)
 
         httpd =  http.server.HTTPServer(("", 11050), web_server)
-        try:
-            print(address+" is serving as chief")
-            httpd.serve_forever()
-        except KeyboardInterrupt:
-            pass
-        httpd.server_close()
+        
         print(address, " is chief on 11050")
+        httpd.serve_forever()
 
         s.workers = {}
         s.client = None
