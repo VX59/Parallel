@@ -41,3 +41,5 @@ class Parallel():
                                         (address,port),mode, data)
         recipient.send(message)
         recipient.close()
+
+    # http client send and get data from chief

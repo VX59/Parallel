@@ -3,7 +3,10 @@ import requests
 import wget
 import os
 
-class Webserver():
+import http.server
+import socketserver
+
+class web_client():
     def __init__(w, address:str):
         w.address = address
         
@@ -26,7 +29,32 @@ class Webserver():
         if response.status_code != 200:
             print("Error:", response.status_code)
 
-# websocket restapi    
+class web_server(http.server.BaseHTTPRequestHandler):
+    def do_GET(self):
+        self.send_response(200)
+        self.send_header('Content-type', 'text/plain')
+        self.end_headers()
+        self.wfile.write(b'GET request received, use POST to upload files')
+
+    def do_POST(self):
+        endpoint = self.path
+        if endpoint != '/endpoint':
+            self.send_response(404)
+            self.end_headers()
+            self.wfile.write(b'Endpoint not found')
+            return
+        
+        content_length = int(self.headers['Content-Length'])
+        post_data = self.rfile.read(content_length)
+        
+        filename = self.headers['Filename']
+        with open(filename, 'wb') as f:
+            f.write(post_data)
+        
+        self.send_response(200)
+        self.end_headers()
+        self.wfile.write(b'File uploaded successfully')
+
 class Chief(Parallel):
     # creates a new group and start a webserver. start a single worker on the same machine
     def __init__(s, address:str, port:int):
@@ -38,7 +66,12 @@ class Chief(Parallel):
                 "done": s.done}
         
         super().__init__(address, port, rpcs)
-        s.webserver = Webserver(address="http://"+address+"/")
+
+        os.chdir("resources")
+        with socketserver.TCPServer(("", 11050), http.server.BaseHTTPRequestHandler) as httpd:
+            print(address, " is serving cum on 11050")
+            httpd.serve_forever() 
+
         s.workers = {}
         s.client = None
 
