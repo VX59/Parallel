@@ -71,7 +71,8 @@ class Webserver():
 
 class Client(Parallel):
     def __init__(s, address:str,port:int):
-        rpcs = {"client-accept":s.client_accept}
+        rpcs = {"client-accept":s.client_accept,
+                "done": s.done}
         s.contact = None
         super().__init__(address,port, rpcs)
 
@@ -82,14 +83,22 @@ class Client(Parallel):
         print("accepted", message['data'])
         data = message['data']
         s.contact = data['contact']
-        s.webserver = Webserver(address=data['web']) 
+        s.webserver = Webserver(address=data['web'])
 
+    # process results
+    def done(s, message:dict):
+        # to do
+        return
+    
 class Chief(Parallel):
     # creates a new group and start a webserver. start a single worker on the same machine
     def __init__(s, address:str, port:int):
         rpcs = {"client-connect":s.client_connect,
                 "worker-join":s.worker_join,
-                "activate":s.activate}
+                "fetch-splitter":s.fetch_butcher,
+                "fetch-data": s.fetch_data,
+                "activate":s.activate,
+                "done": s.done}
         
         super().__init__(address, port, rpcs)
         s.webserver = Webserver(address="http://"+address+"/")
@@ -97,12 +106,14 @@ class Chief(Parallel):
         s.client = None      
 
     # rpc events are triggered by the messagehandler
+    # connect to the client
     def client_connect(s, message:dict):
         print(message['sender'], "requested to access the group")
         data = {"contact":(s.address, s.port), "web":s.webserver.address}
         s.client = message['sender']
         s.send_message(s.client[0],int(s.client[1]),"client-accept",data)
 
+    # add a worker to the network
     def worker_join(s, message:dict):
         worker_address = message['sender'][0]
         worker_port = int(message['sender'][1])
@@ -111,6 +122,22 @@ class Chief(Parallel):
         data = {"supervisor":(s.address, s.port), "web":s.webserver.address}
         s.send_message(worker_address,worker_port,"worker-accept",data)
     
+    # fetch modules for splitting data and merging results
+    def fetch_butcher(s, message:dict):
+        # to do
+        return
+    
+    # fetch data and prepare for fragmentation
+    def fetch_data(s, message:dict):
+        # to do
+        return
+    
+    # acknowledge unlocked worker
+    def done(s, message:dict):
+        # to do 
+        return
+    
+    # split data and prepare the workers for task execution
     def activate(s, message:dict):
         # to do
         return
@@ -118,8 +145,10 @@ class Chief(Parallel):
 class Worker(Parallel):
     def __init__(s, address:str,port:int):
         rpcs  = {"worker-accept": s.worker_accept,
-                 "done": s.done,
+                 "fetch-module": s.fetch_module,
+                 "fetch-fragment": s.fetch_fragment,
                  "activate": s.activate}
+        
         super().__init__(address, port, rpcs)
         s.supervisor = None
         s.webserver:Webserver = None
@@ -127,15 +156,22 @@ class Worker(Parallel):
     def join_network(s, address, port):
         s.send_message(address,port,"worker-join", None)
 
+    # log the supervisor and webserver
     def worker_accept(s, message:dict):
             s.supervisor = message['data']['supervisor']
             s.webserver = Webserver(address=message['data']['web'])
             print(s.supervisor)
 
-    def done(s, message:dict):
-        # to do 
+    # fetch module for executing tasks
+    def fetch_module(s, message:dict):
+        # to do
         return
     
+    def fetch_fragment(s, message:dict):
+        # to do
+        return
+
+    # lock and execute task using provides resources
     def activate(s, message:dict):
         # to do
         return
