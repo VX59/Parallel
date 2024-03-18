@@ -2,9 +2,7 @@ from protocol import Parallel
 import requests
 import wget
 import os
-
 import http.server
-import socketserver
 
 class web_server(http.server.BaseHTTPRequestHandler):
     def do_GET(self):
@@ -38,7 +36,7 @@ class web_server(http.server.BaseHTTPRequestHandler):
         content_length = int(self.headers['Content-Length'])
         post_data = self.rfile.read(content_length)
         
-        filename = "testpost.npy"
+        filename = "downloads/testpost.npy"
         with open(filename, 'wb') as f:
             f.write(post_data)
         
@@ -57,13 +55,11 @@ class Chief(Parallel):
                 "done":             s.done}
         
         super().__init__(address, port, rpcs)
-
-        httpd =  http.server.HTTPServer(("", 11050), web_server)
         
         s.workers = []
         s.client = None
         print(address, " is chief on 11050")
-        httpd.serve_forever()   # blocks thread and listen for connections
+        http.server.HTTPServer(("", 11050), web_server).serve_forever()   # blocks thread and listen for connections
 
     # rpc events are triggered by the messagehandler
     # connect to the client
