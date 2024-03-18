@@ -42,4 +42,5 @@ class Parallel():
         recipient.send(message)
         recipient.close()
 
-    # http client send and get data from chief
+    # send and get data from chief
+    # to do

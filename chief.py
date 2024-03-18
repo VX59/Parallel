@@ -8,10 +8,24 @@ import socketserver
 
 class web_server(http.server.BaseHTTPRequestHandler):
     def do_GET(self):
+        file_path = os.path.join(os.getcwd(),self.path.strip('/'))
+
+        if not os.path.exists(file_path):
+            self.send_response(404)
+            self.end_headers()
+            self.wfile.write(b'File not found')
+            return
+        
+        with open(file_path, 'rb') as f:
+            file_content = f.read()
+
         self.send_response(200)
-        self.send_header('Content-type', 'text/plain')
+        self.send_header('Content-type', 'application/octet-stream')
+        self.send_header('Content-Disposition', 'attachment; filename="{}"'.format(os.path.basename(file_path)))
+        self.send_header('Content-Length', str(len(file_content)))
         self.end_headers()
-        self.wfile.write(b'GET request received, use POST to upload files')
+        
+        self.wfile.write(file_content)
 
     def do_POST(self):
         endpoint = self.path
@@ -35,19 +49,23 @@ class web_server(http.server.BaseHTTPRequestHandler):
 class Chief(Parallel):
     # creates a new group and start a webserver. start a single worker on the same machine
     def __init__(s, address:str, port:int):
-        rpcs = {"client-connect":s.client_connect,
-                "worker-join":s.worker_join,
-                "fetch-splitter":s.fetch_butcher,
-                "fetch-data": s.fetch_data,
-                "activate":s.activate,
-                "done": s.done}
+        rpcs = {"client-connect":   s.client_connect,   # from client
+                "fetch-butcher":    s.fetch_butcher,    
+                "fetch-data":       s.fetch_data,
+                "activate":         s.activate,
+                "worker-join":      s.worker_join,      # from worker
+                "done":             s.done}
         
         super().__init__(address, port, rpcs)
 
-        os.chdir("resources")
-        with http.server.HTTPServer(("", 11050), web_server) as httpd:
-            print(address, " is chief on 11050")
-            httpd.serve_forever() 
+        httpd =  http.server.HTTPServer(("", 11050), web_server)
+        try:
+            print(address+" is serving as chief")
+            httpd.serve_forever()
+        except KeyboardInterrupt:
+            pass
+        httpd.server_close()
+        print(address, " is chief on 11050")
 
         s.workers = {}
         s.client = None
