@@ -1,10 +1,9 @@
 from protocol import Parallel
-import requests
-import wget
 import os
-import http.server
+from http.server import BaseHTTPRequestHandler, HTTPServer
+import docker
 
-class web_server(http.server.BaseHTTPRequestHandler):
+class ChiefHTTPHandler(BaseHTTPRequestHandler):
     def do_GET(self):
         file_path = os.path.join(os.getcwd(),self.path.strip('/'))
 
@@ -26,8 +25,7 @@ class web_server(http.server.BaseHTTPRequestHandler):
         self.wfile.write(file_content)
 
     def do_POST(self):
-        endpoint = self.path
-        if endpoint != '/endpoint':
+        if self.path != '/':
             self.send_response(404)
             self.end_headers()
             self.wfile.write(b'Endpoint not found')
@@ -36,13 +34,25 @@ class web_server(http.server.BaseHTTPRequestHandler):
         content_length = int(self.headers['Content-Length'])
         post_data = self.rfile.read(content_length)
         
-        filename = "downloads/testpost.npy"
+        # Client is currently sending an example file
+        filename = "downloads/hello_world.py"
         with open(filename, 'wb') as f:
             f.write(post_data)
         
         self.send_response(200)
         self.end_headers()
         self.wfile.write(b'File uploaded successfully')
+
+        # Move this to worker
+        client = docker.from_env()
+        print("Building temporary worker image...")
+        image, _ = client.images.build(path=".", tag="parallel-temp-worker", rm=True)
+
+        # See Dockerfile for more information
+        print("Running temporary worker container...")
+        container_log = client.containers.run(image=image, remove=True)
+        print(container_log.decode("utf-8"))
+
 
 class Chief(Parallel):
     # creates a new group and start a webserver. start a single worker on the same machine
@@ -58,8 +68,8 @@ class Chief(Parallel):
         
         s.workers = []
         s.client = None
-        print(address, " is chief on 11050")
-        http.server.HTTPServer(("", 11050), web_server).serve_forever()   # blocks thread and listen for connections
+        print("Chief", address, " is handling HTTP on 11050")
+        HTTPServer(("", 11050), ChiefHTTPHandler).serve_forever()   # blocks thread and listen for connections
 
     # rpc events are triggered by the messagehandler
     # connect to the client
