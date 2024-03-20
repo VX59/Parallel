@@ -2,6 +2,8 @@ import socket
 import threading
 import json
 import time
+import os
+from http.server import BaseHTTPRequestHandler, HTTPServer
 
 class Message():
     def encode(sender, receiver, mode, data)-> str:
@@ -22,7 +24,7 @@ class Parallel():
         s.server.listen(0)
 
         s.receiver = threading.Thread(target=s.message_handler,name="message-handler")
-        s.receiver.start()       
+        s.receiver.start() 
 
     # block thread until receiving a connection, deserialize message and map to an rpc
     def message_handler(s):
@@ -41,6 +43,3 @@ class Parallel():
                                         (address,port),mode, data)
         recipient.send(message)
         recipient.close()
-
-    # send and get data from chief
-    # to do
