@@ -13,11 +13,10 @@ class Message():
 
 class Parallel():
     # create a socket listener, then create message handler
-    def __init__(s,address:str,port:int, rpcs:dict, http_endpoints:dict):
+    def __init__(s,address:str,port:int, rpcs:dict):
         s.address:str = address
         s.port:int = port
         s.rpcs:dict = rpcs
-        s.http_endpoints:dict = http_endpoints
         s.quit = False
         
         s.server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
@@ -44,6 +43,3 @@ class Parallel():
                                         (address,port),mode, data)
         recipient.send(message)
         recipient.close()
-
-    # send and get data from chief
-    # to do
