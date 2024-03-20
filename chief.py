@@ -18,8 +18,6 @@ class ChiefHTTPHandler(BaseHTTPRequestHandler):
         
         else: endpoints[self.path]()
 
-import threading
-
 class Chief(Parallel):
     # creates a new group and start a webserver
     def __init__(s, address:str, port:int):

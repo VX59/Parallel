@@ -1,10 +1,5 @@
-from http.server import BaseHTTPRequestHandler, HTTPServer
-import io
+from http.server import BaseHTTPRequestHandler
 from protocol import Parallel
-import docker
-import tarfile
-import threading
-
 from docker_utils import get_container, create_archive
 
 class WorkerHTTPHandler(BaseHTTPRequestHandler):
