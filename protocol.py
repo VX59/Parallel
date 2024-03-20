@@ -27,7 +27,7 @@ class Parallel():
         http_thread = threading.Thread(target=http_server,name="http-server")
         http_thread.start()
 
-        print(s.address +" is accepting connections on port " + str(s.port))
+        print(s.address +" is accepting connections on " + str(s.port))
         s.receiver = threading.Thread(target=s.message_handler,name="message-handler")
         s.receiver.start() 
 
