@@ -1,14 +1,29 @@
 from protocol import Parallel
+from http.server import BaseHTTPRequestHandler, HTTPServer
 
+class WorkerHTTPHandler(BaseHTTPRequestHandler):
+    def do_POST(self):
+        def upload_processor(self):
+            pass
+
+        def activate(self):
+            pass
+
+        endpoints = {"upload/processor":upload_processor,
+                     "activate":activate}
+        
+        if self.path not in endpoints:
+            self.send_response(404)
+            self.end_headers()
+            self.wfile.write(b'Endpoint not found')
+            return
+        
+        else:
+            endpoints[self.path]()
 
 class Worker(Parallel):
     def __init__(s, address: str, port: int):
-        rpcs = {
-            "worker-accept": s.worker_accept,
-            "fetch-module": s.fetch_module,
-            "fetch-fragment": s.fetch_fragment,
-            "activate": s.activate,
-        }
+        rpcs = {"worker-accept": s.worker_accept}
 
         super().__init__(address, port, rpcs)
         s.supervisor = None
@@ -20,21 +35,6 @@ class Worker(Parallel):
     def worker_accept(s, message: dict):
         s.supervisor = message["data"]["supervisor"]
         print(s.supervisor)
-
-    # fetch module for executing tasks
-    def fetch_module(s, message: dict):
-        # to do
-        return
-
-    def fetch_fragment(s, message: dict):
-        # to do
-        return
-
-    # lock and execute task using provides resources
-    def activate(s, message: dict):
-        # to do
-        return
-
 
 import sys
 import time
