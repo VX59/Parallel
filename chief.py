@@ -1,8 +1,5 @@
 from protocol import Parallel
-import os
-from http.server import BaseHTTPRequestHandler, HTTPServer
-import docker
-import cgi
+from http.server import BaseHTTPRequestHandler
 
 class ChiefHTTPHandler(BaseHTTPRequestHandler):
     def do_POST(self):
@@ -21,19 +18,19 @@ class ChiefHTTPHandler(BaseHTTPRequestHandler):
         
         else: endpoints[self.path]()
 
+import threading
 
 class Chief(Parallel):
     # creates a new group and start a webserver
     def __init__(s, address:str, port:int):
-        rpcs = {"worker-join":      s.worker_join}
-        super().__init__(address, port, rpcs)
+        rpcs = {"worker-join":s.worker_join}
+        httpport = 11050
+
+        super().__init__(address, port, rpcs, httpport, ChiefHTTPHandler)
         
+        s.trust_factor = 1
         s.workers = []
         s.client = None
-        s.httpport = 11050
-
-        print("Chief", address, " is handling HTTP on 11050")
-        HTTPServer(("", s.httpport), ChiefHTTPHandler).serve_forever()
         
     # add a worker to the network
     def worker_join(s, message:dict):
@@ -43,15 +40,15 @@ class Chief(Parallel):
         s.workers.append((worker_address,worker_port,worker_httpport))
         print("contacts", len(s.workers),"\n", s.workers)
 
-        data = {"supervisor":(s.address, s.port), "web":s.httpport}
+        data = {"supervisor":(s.address, s.port), "web":s.httpport, "trust-factor":s.trust_factor}
         s.send_message(worker_address,worker_port,"worker-accept",data)
 
-    # Chief http client methods    
-    def upload_processor(modulepath:str, job_id:int):
+    # Chief http client methods
+    def upload_processor(module_path:str, job_id:int):
         # to do
         pass
 
-    def activate(resourcepath:str, job_id:int):
+    def activate(resource_path:str, job_id:int):
         # to do
         pass
     

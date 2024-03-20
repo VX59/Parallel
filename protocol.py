@@ -1,9 +1,7 @@
 import socket
 import threading
 import json
-import time
-import os
-from http.server import BaseHTTPRequestHandler, HTTPServer
+from http.server import HTTPServer
 
 class Message():
     def encode(sender, receiver, mode, data)-> str:
@@ -13,9 +11,10 @@ class Message():
 
 class Parallel():
     # create a socket listener, then create message handler
-    def __init__(s,address:str,port:int, rpcs:dict):
+    def __init__(s,address:str,port:int, rpcs:dict, httpport:int, httpHandler):
         s.address:str = address
         s.port:int = port
+        s.httpport:int = httpport
         s.rpcs:dict = rpcs
         s.quit = False
         
@@ -23,13 +22,18 @@ class Parallel():
         s.server.bind(('0.0.0.0', s.port))
         s.server.listen(0)
 
+        print(address, " is handling HTTP on ",httpport)
+        http_server = HTTPServer(("", s.httpport), httpHandler).serve_forever
+        http_thread = threading.Thread(target=http_server,name="http-server")
+        http_thread.start()
+
+        print(s.address +" is accepting connections on port " + str(s.port))
         s.receiver = threading.Thread(target=s.message_handler,name="message-handler")
         s.receiver.start() 
 
     # block thread until receiving a connection, deserialize message and map to an rpc
     def message_handler(s):
         while not s.quit:
-            print(s.address +" is accepting connections on port " + str(s.port))
             client, _ = s.server.accept()
             message = json.loads(client.recv(1024).decode("utf-8"))
             s.rpcs[message['mode']](message)
