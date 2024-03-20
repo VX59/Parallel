@@ -28,7 +28,6 @@ class Chief(Parallel):
         
         s.trust_factor = 1
         s.workers = []
-        s.client = None
         
     # add a worker to the network
     def worker_join(s, message:dict):
