@@ -1,7 +1,6 @@
 from protocol import Parallel
 import os
 from http.server import BaseHTTPRequestHandler, HTTPServer
-import docker
 
 class ChiefHTTPHandler(BaseHTTPRequestHandler):
     def do_GET(self):
@@ -25,6 +24,8 @@ class ChiefHTTPHandler(BaseHTTPRequestHandler):
         self.wfile.write(file_content)
 
     def do_POST(self):
+        print("POST request received")
+
         if self.path != '/':
             self.send_response(404)
             self.end_headers()
@@ -42,16 +43,6 @@ class ChiefHTTPHandler(BaseHTTPRequestHandler):
         self.send_response(200)
         self.end_headers()
         self.wfile.write(b'File uploaded successfully')
-
-        # Move this to worker
-        client = docker.from_env()
-        print("Building temporary worker image...")
-        image, _ = client.images.build(path=".", tag="parallel-temp-worker", rm=True)
-
-        # See Dockerfile for more information
-        print("Running temporary worker container...")
-        container_log = client.containers.run(image=image, remove=True)
-        print(container_log.decode("utf-8"))
 
 
 class Chief(Parallel):

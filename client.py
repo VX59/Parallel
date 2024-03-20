@@ -22,10 +22,6 @@ class Client(Parallel):
         # to do
         return
     
-    def send_http_hello_py(s, chief_url):
-        response = requests.post(chief_url, data="print(\"hello world\")")
-        print(response.text)
-    
 import sys
 import time 
 
@@ -39,5 +35,3 @@ if __name__ == "__main__":
     client.connect(hostname,11030)
     time.sleep(1)
     print("contact", client.contact)
-
-    client.send_http_hello_py(f"http://{client.contact[0]}:11050")
