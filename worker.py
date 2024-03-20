@@ -1,58 +1,69 @@
 from http.server import BaseHTTPRequestHandler, HTTPServer
 import io
 from protocol import Parallel
+from http.server import BaseHTTPRequestHandler, HTTPServer
+import cgi
 import docker
 import tarfile
 
 class WorkerHTTPHandler(BaseHTTPRequestHandler):
     def do_POST(self):
-        print("POST request recieved")
+        data = cgi.FieldStorage(
+            fp=self.rfile,
+            headers=self.headers,
+            environ={"REQUEST_METHOD":"POST"})
+        
+        def upload_processor():
+            content_length = int(self.headers['Content-Length'])
+            post_data = self.rfile.read(content_length)
+            # Currently expecting a single processor.py file
+            archive = Worker.create_archive(post_data)
+            Worker.do_work(archive)
 
-        if self.path != "/":
+            self.send_response(200)
+            self.end_headers()
+            self.wfile.write(b'Processor uploaded')
+
+        def activate():
+            # to do
+            pass
+
+        endpoints = {"/upload/processor":upload_processor,
+                     "/activate":activate}
+        
+        if self.path not in endpoints:
             self.send_response(404)
             self.end_headers()
-            self.wfile.write(b"Endpoint not found")
+            self.wfile.write(b'Endpoint not found')
             return
         
-        content_length = int(self.headers['Content-Length'])
-        post_data = self.rfile.read(content_length)
-        # Currently expecting a single processor.py file
-        archive = Worker.create_archive(post_data)
-        Worker.do_work(archive)
-
-        self.send_response(200)
-        self.end_headers()
-        self.wfile.write(b"Processor executed successfully!")
-
+        else:
+            endpoints[self.path]()
 
 class Worker(Parallel):
-    def __init__(s, address:str,port:int):
-        rpcs  = {"worker-accept": s.worker_accept,
-                 "fetch-module": s.fetch_module,
-                 "fetch-fragment": s.fetch_fragment,
-                 "activate": s.activate}
-        
+    def __init__(s, address: str, port: int):
+        rpcs = {"worker-accept": s.worker_accept}
+
         super().__init__(address, port, rpcs)
         s.supervisor = None
+        s.httpport = 11040   # default
 
-        print("Worker", address, " is handling HTTP on 11051")
-        HTTPServer(("", 11051), WorkerHTTPHandler).serve_forever()
+        print("worker", address, " is handling HTTP on 11050")
+        HTTPServer(("", s.httpport), WorkerHTTPHandler).serve_forever()   # blocks thread and listen for connections
 
     def join_network(s, address, port):
-        s.send_message(address,port,"worker-join", None)
+        s.send_message(address, port, "worker-join", {"web":s.httpport})
 
     # log the supervisor and webserver
-    def worker_accept(s, message:dict):
-            s.supervisor = message['data']['supervisor']
-            print(s.supervisor)
+    def worker_accept(s, message: dict):
+        s.supervisor = (message["data"]["supervisor"][0], 
+                        message["data"]["supervisor"][1],
+                        message["data"]["web"])
 
-    # fetch module for executing tasks
-    def fetch_module(s, message:dict):
+    def upload_result(resourcepath:str, job_id):
         # to do
-        return
-    
-    def fetch_fragment(s, message:dict):
-        # to do
+        pass
+
         return
 
     # lock and execute task using provides resources
@@ -105,19 +116,18 @@ class Worker(Parallel):
 
     
 import sys
+import time
 import socket
 
 if __name__ == "__main__":
     args = sys.argv
 
-    if len(args) == 1:
-        address:str = socket.gethostname()
-        port = 11031
-    else:
-        address = sys.argv[1]
-        port = int(sys.argv[2])
+    address:str = socket.gethostname()
+    port:int = int(sys.argv[1])
 
-    test = Worker(address,port)
-    
-    test.join_network(socket.gethostname(),11030)
-    print("supervisor", test.supervisor)
+    test = Worker(address, port)
+
+    test.join_network(address, 11030)
+    time.sleep(0.5)
+
+    print("reporting to ", test.supervisor)

@@ -1,0 +1,38 @@
+REST API descriptions
+
+Web-UI hosted on Chief
+
+POST    access/login
+        -password
+        response:   200, served /webui-index.html
+
+POST    upload/module-package   (.tar)
+        -module package archive
+        -dataset file
+        response: 200, successfully uploaded module package
+
+POST    module/activate
+        -module name
+        -fragments enpoint
+        resonse: 200, network activation successful
+
+GET     retreive/result_directory
+        resposne: 200, result file
+
+Worker http server
+
+POST    upload/processor
+        -processor module
+        response: 200, sucessfully uploaded processor
+
+POST    activate
+        -fragment   (.tar)
+        -job-id
+        response: 200, successfully uploaded fragment
+
+Other Chief http server for workers
+
+POST    upload/result
+        -result fragment (.tar)
+        -job-id
+        response: 200, successfully uploaded result
