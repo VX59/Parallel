@@ -1,18 +1,13 @@
 from http.server import BaseHTTPRequestHandler, HTTPServer
 import io
 from protocol import Parallel
-from http.server import BaseHTTPRequestHandler, HTTPServer
 import cgi
 import docker
 import tarfile
 
 class WorkerHTTPHandler(BaseHTTPRequestHandler):
     def do_POST(self):
-        data = cgi.FieldStorage(
-            fp=self.rfile,
-            headers=self.headers,
-            environ={"REQUEST_METHOD":"POST"})
-        
+             
         def upload_processor():
             content_length = int(self.headers['Content-Length'])
             post_data = self.rfile.read(content_length)
@@ -48,7 +43,7 @@ class Worker(Parallel):
         s.supervisor = None
         s.httpport = 11040   # default
 
-        print("worker", address, " is handling HTTP on 11050")
+        print("worker", address, " is handling HTTP on", s.httpport)
         HTTPServer(("", s.httpport), WorkerHTTPHandler).serve_forever()   # blocks thread and listen for connections
 
     def join_network(s, address, port):

@@ -6,13 +6,8 @@ import cgi
 
 class ChiefHTTPHandler(BaseHTTPRequestHandler):
     def do_POST(self):
-        data = cgi.FieldStorage(
-            file=self.rfile,
-            headers=self.headers,
-            environ={"REQUEST_METHOD":"POST"})
         
         def upload_result():
-            job_id = data.getvalue('job-id')
             # to do
             pass
 
