@@ -40,8 +40,11 @@ class Worker(Parallel):
         httpport = 11040   # default
         s.supervisors = []  # (address, port, httpport, trust-factor)
         
-        super().__init__(address, port, rpcs, WorkerFileServer)
+        super().__init__(address, port, rpcs, httpport)
 
+        http_server = HTTPServer(("", s.httpport), WorkerFileServer).serve_forever
+        http_thread = threading.Thread(target=http_server,name="http-server")
+        http_thread.start()
 
     def join_network(s, address, port):
         s.send_message(address, port, "worker-join", {"web":s.httpport})

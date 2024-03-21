@@ -2,7 +2,7 @@ import docker
 import io
 import tarfile
 
-def get_container(name):
+def get_container(name, bind_port=False, port:int=None):
     image = "python:3.9-slim"
     dclient = docker.from_env()
 
@@ -14,7 +14,9 @@ def get_container(name):
         return container
     except:
         print(f"{name} does not exist. Creating...")
-        port_binding = {'11060/tcp':('0.0.0.0',11060)}
+        port_binding=None
+        if bind_port:
+            port_binding = {str(port)+'/tcp':('0.0.0.0',port)}
         container = dclient.containers.run(image, name=name, tty=True, detach=True, ports=port_binding)
         print(f"{name} created and running")
         return container

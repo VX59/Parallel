@@ -11,7 +11,7 @@ class Message():
 
 class Parallel():
     # create a socket listener, then create message handler
-    def __init__(s,address:str,port:int, rpcs:dict, httpport:int, httphandler):
+    def __init__(s,address:str,port:int, rpcs:dict, httpport:int):
         s.address:str = address
         s.port:int = port
         s.httpport:int = httpport
@@ -21,10 +21,6 @@ class Parallel():
         s.server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         s.server.bind(('0.0.0.0', s.port))
         s.server.listen(0)
-
-        http_server = HTTPServer(("", s.httpport), httphandler).serve_forever
-        http_thread = threading.Thread(target=http_server,name="http-server")
-        http_thread.start()
 
         print(s.address +" is accepting connections on " + str(s.port))
         s.receiver = threading.Thread(target=s.message_handler,name="message-handler")
