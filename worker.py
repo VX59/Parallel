@@ -1,24 +1,26 @@
-from http.server import BaseHTTPRequestHandler
+from http.server import BaseHTTPRequestHandler, HTTPServer
 from protocol import Parallel
 from docker_utils import get_container, create_archive
+import threading
+import requests
 
-class WorkerHTTPHandler(BaseHTTPRequestHandler):
+class WorkerFileServer(BaseHTTPRequestHandler):
     archive:bytes
     
     def do_POST(self):
 
         def upload_processor():
             content_length = int(self.headers['Content-Length'])
-            post_data = self.rfile.read(content_length)
+            post_data:bytes = self.rfile.read(content_length)
             # Currently expecting a single processor.py file
-            WorkerHTTPHandler.archive = create_archive(post_data)
+            WorkerFileServer.archive = create_archive(post_data)
 
             self.send_response(200)
             self.end_headers()
             self.wfile.write(b'Processor uploaded')
 
         def activate():
-            Worker.do_work(WorkerHTTPHandler.archive)
+            Worker.do_work(WorkerFileServer.archive)
 
         endpoints = {"/upload/processor":upload_processor,
                      "/activate":activate}
@@ -36,9 +38,10 @@ class Worker(Parallel):
     def __init__(s, address: str, port: int):
         rpcs = {"worker-accept": s.worker_accept}
         httpport = 11040   # default
-        super().__init__(address, port, rpcs, httpport, WorkerHTTPHandler)
-
         s.supervisors = []  # (address, port, httpport, trust-factor)
+        
+        super().__init__(address, port, rpcs, WorkerFileServer)
+
 
     def join_network(s, address, port):
         s.send_message(address, port, "worker-join", {"web":s.httpport})
@@ -55,7 +58,7 @@ class Worker(Parallel):
         return
     
     def do_work(processor_archive):
-        container = get_container()
+        container = get_container("Parallel-Worker")
         print("Ensuring working directory exists...")
         container.exec_run("mkdir -p /app", workdir="/")
 
