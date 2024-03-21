@@ -1,6 +1,3 @@
-import requests
-from docker_utils import create_archive
-import tempfile
 import tarfile
 import os
 
@@ -10,5 +7,5 @@ def tar_module_package(modulepath, tarfilepath):
             tar.add(modulepath, arcname=os.path.basename(modulepath))
             tar.close()
         
-tar_module_package("resources/modules/sample_module", 
-                    "resources/modules/module_archives/sample_module.tar")
+tar_module_package("resources/jobs/sample-job", 
+                    "resources/jobs/data_archives/sample-job.tar")
