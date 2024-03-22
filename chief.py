@@ -1,5 +1,4 @@
 from protocol import Parallel
-from http.server import BaseHTTPRequestHandler
 from docker_utils import get_container, create_archive
         
 class Chief(Parallel):
@@ -15,7 +14,6 @@ class Chief(Parallel):
         # the chief http server runs in a docker container
         container = get_container("Chief", bind_port=True, port=httpport)
         print("Ensuring working directory exists...")
-        container.exec_run("mkdir -p /app/resources", workdir="/")
         container.exec_run("mkdir -p /app/resources/modules/module_archives", workdir="/")
         container.exec_run("mkdir -p /app/resources/jobs", workdir="/")
         container.exec_run("pip install psutil")

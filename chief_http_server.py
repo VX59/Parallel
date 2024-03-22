@@ -21,6 +21,7 @@ class ChiefHttpHandler(BaseHTTPRequestHandler):
                 tar.close()
 
             with tarfile.open(tarpath, "r") as tar:
+                # Deprecated
                 tar.extractall("/app/resources/jobs/")
                 tar.close()
 
@@ -63,7 +64,7 @@ class ChiefHttpHandler(BaseHTTPRequestHandler):
             id = str(random.randint(0,1e+10))
             fragname = "fragment"+id
 
-            with open("/app/jobs/fragment_cache/"+fragname+".txt", "w") as file:
+            with open("/app/jobs/fragment_cache/"+fragname, "w") as file:
                 file.write(str(first_fragment))
 
             print(first_fragment)
@@ -85,6 +86,7 @@ class ChiefHttpHandler(BaseHTTPRequestHandler):
 httpport:int = int(sys.argv[1])
 
 # STINKY CODE. I DONT LIKE! (╯°□°）╯︵ ┻━┻
+# I DONT LIKE THIS EITHER ITS STINKY DO IT PROPERRLY ༼ つ ◕_◕ ༽つ
 # kill http server if its already runnig
 for proc in psutil.process_iter():
     connections = proc.connections()
