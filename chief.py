@@ -53,7 +53,7 @@ class ChiefHttpHandler(BaseHTTPRequestHandler):
             self.end_headers()
             self.wfile.write(b'Tar file received successfully')
 
-        def upload_module():
+        def upload_module():  # custom form data parser, curse you cgi (╯°□°）╯︵ ┻━┻ dont make me do this!!!
             content_length = int(self.headers['Content-Length'])
             # multipart form data
             data_buffer:bytes = self.rfile.read(content_length)
