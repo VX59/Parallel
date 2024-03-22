@@ -1,10 +1,11 @@
 from utils import get_container, create_archive, find_free_port
 import socket
+import sys
 import subprocess
 # the chief runs in a docker container
 address:str = socket.gethostname()
-port:int = find_free_port()
-httpport:int = find_free_port()
+port:int = sys.argv[1]
+httpport:int = sys.argv[2]
 
 container = get_container("worker", port=port, httpport=httpport)
 print("setting up environment...")
