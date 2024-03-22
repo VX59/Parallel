@@ -1,44 +1,21 @@
-from http.server import BaseHTTPRequestHandler
+from http.server import HTTPServer
 from protocol import Parallel
-from docker_utils import get_container, create_archive
+from docker_utils import get_container
+import threading
 
-class WorkerHTTPHandler(BaseHTTPRequestHandler):
-    archive:bytes
-    
-    def do_POST(self):
-
-        def upload_processor():
-            content_length = int(self.headers['Content-Length'])
-            post_data = self.rfile.read(content_length)
-            # Currently expecting a single processor.py file
-            WorkerHTTPHandler.archive = create_archive(post_data)
-
-            self.send_response(200)
-            self.end_headers()
-            self.wfile.write(b'Processor uploaded')
-
-        def activate():
-            Worker.do_work(WorkerHTTPHandler.archive)
-
-        endpoints = {"/upload/processor":upload_processor,
-                     "/activate":activate}
-        
-        if self.path not in endpoints:
-            self.send_response(404)
-            self.end_headers()
-            self.wfile.write(b'Endpoint not found')
-            return
-        
-        else:
-            endpoints[self.path]()
+from worker_http_server import WorkerHttpHandler
 
 class Worker(Parallel):
     def __init__(s, address: str, port: int):
         rpcs = {"worker-accept": s.worker_accept}
         httpport = 11040   # default
-        super().__init__(address, port, rpcs, httpport, WorkerHTTPHandler)
-
         s.supervisors = []  # (address, port, httpport, trust-factor)
+        
+        super().__init__(address, port, rpcs, httpport)
+
+        http_server = HTTPServer(("", s.httpport), WorkerHttpHandler).serve_forever
+        http_thread = threading.Thread(target=http_server,name="http-server")
+        http_thread.start()
 
     def join_network(s, address, port):
         s.send_message(address, port, "worker-join", {"web":s.httpport})
@@ -55,7 +32,7 @@ class Worker(Parallel):
         return
     
     def do_work(processor_archive):
-        container = get_container()
+        container = get_container("Parallel-Worker")
         print("Ensuring working directory exists...")
         container.exec_run("mkdir -p /app", workdir="/")
 
