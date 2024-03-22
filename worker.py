@@ -2,9 +2,6 @@ from http.server import HTTPServer
 from protocol import Parallel
 from docker_utils import get_container
 import threading
-
-from worker_http_server import WorkerHttpHandler
-
 class Worker(Parallel):
     def __init__(s, address: str, port: int):
         rpcs = {"worker-accept": s.worker_accept}
@@ -13,9 +10,9 @@ class Worker(Parallel):
         
         super().__init__(address, port, rpcs, httpport)
 
-        http_server = HTTPServer(("", s.httpport), WorkerHttpHandler).serve_forever
-        http_thread = threading.Thread(target=http_server,name="http-server")
-        http_thread.start()
+        #http_server = HTTPServer(("", s.httpport), WorkerHttpHandler).serve_forever
+        #http_thread = threading.Thread(target=http_server,name="http-server")
+        #http_thread.start()
 
     def join_network(s, address, port):
         s.send_message(address, port, "worker-join", {"web":s.httpport})
