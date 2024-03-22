@@ -13,21 +13,8 @@ class ChiefHttpHandler(BaseHTTPRequestHandler):
     def __init__(self, chief, *args, **kwargs):
         self.chief = chief
         super().__init__(*args, **kwargs)
-    
-    def do_GET(self):
-        os.mkdir("/app/test_folder/")
-        self.send_response(200)
-        self.send_header('Content-type', 'text/html')
-        self.end_headers()
-        self.wfile.write(b'request received successfully')
 
     def do_POST(self):
-
-        def test_endpoint():
-            self.send_response(200)
-            self.end_headers()
-            message = str(self.chief.workers).encode("utf-8")
-            self.wfile.write(message)
 
         def submit_work():    # worker
             pass
@@ -53,13 +40,14 @@ class ChiefHttpHandler(BaseHTTPRequestHandler):
             self.end_headers()
             self.wfile.write(b'Tar file received successfully')
 
-        def upload_module():  # custom form data parser, curse you cgi (╯°□°）╯︵ ┻━┻ dont make me do this!!!
+        def upload_module():  # custom form data parser cuz cgi is depreceated and email package sucks
+            # segment multipart form data
             content_length = int(self.headers['Content-Length'])
-            # multipart form data
             data_buffer:bytes = self.rfile.read(content_length)
             boundary = data_buffer.split(b"\n")[0]
             parts = data_buffer.split(boundary)
             files = parts[1:-1]
+
             # get module name
             form_data = parts[-1].split(b"\n")[1:-2]
             module_name = form_data[-1][:-1].decode("utf-8")
@@ -68,10 +56,11 @@ class ChiefHttpHandler(BaseHTTPRequestHandler):
                 os.mkdir(module_path)
                 os.mkdir(module_path+"Butcher/")
                 os.mkdir(module_path+"Processor/")
-
-            # write files
             for part in files:
-                header = part.split(b"\n")[1]
+
+                # parse file headers
+                part_lines = part.split(b"\n")
+                header = part_lines[1]
                 header_fields = header.split(b";")[1:]
 
                 key_position = header_fields[0].find(b"name")
@@ -80,9 +69,8 @@ class ChiefHttpHandler(BaseHTTPRequestHandler):
                 filename_position = header_fields[1].find(b"filename")
                 filename = header_fields[1][filename_position+2+len("filename"):-2].decode("utf-8")
 
-                print(filename, key)
-                body:bytes = part.split(b"\n")[4:]
-                print(body)
+                # write files
+                body:bytes = part_lines[4:]
                 if key == "splitter" or key == "merger":
                     with open(module_path+"Butcher/"+filename, "wb") as writer:
                         writer.writelines(body)
@@ -96,7 +84,7 @@ class ChiefHttpHandler(BaseHTTPRequestHandler):
             self.end_headers()
             self.wfile.write(b"successfuly uploaded module")
 
-        def initiate_job():     # client
+        def initiate_job(): # client
             # load splitter module
             spec = importlib.util.spec_from_file_location("splitter","/app/resources/modules/sample_module/Butcher/Split.py")
             splitter = importlib.util.module_from_spec(spec)
@@ -118,8 +106,7 @@ class ChiefHttpHandler(BaseHTTPRequestHandler):
         endpoints = {"/initiate/job":initiate_job,
                      "/upload/module":upload_module,
                      "/upload/data":upload_data,
-                     "/submit/work":submit_work,
-                     "/test/endpoint":test_endpoint}
+                     "/submit/work":submit_work}
         
         if self.path not in endpoints:
             self.send_response(404)

@@ -1,7 +1,44 @@
-from http.server import HTTPServer
+from http.server import BaseHTTPRequestHandler, HTTPServer
 from protocol import Parallel
-from docker_utils import get_container
+from utils import get_container, create_archive
 import threading
+from worker import Worker
+
+
+class WorkerHttpHandler(BaseHTTPRequestHandler):
+    def __init__(self, worker, *args, **kwargs):
+        self.worker = worker
+        self.archive:bytes
+        super().__init__(*args, **kwargs)
+    
+    def do_POST(self):
+
+        def upload_processor():
+            content_length = int(self.headers['Content-Length'])
+            post_data:bytes = self.rfile.read(content_length)
+            # Currently expecting a single processor.py file
+            self.archive = create_archive(post_data)
+
+            self.send_response(200)
+            self.end_headers()
+            self.wfile.write(b'Processor uploaded')
+
+        def activate():
+            self.worker.do_work(self.archive)
+
+        endpoints = {"/upload/processor":upload_processor,
+                     "/activate":activate}
+        
+        if self.path not in endpoints:
+            self.send_response(404)
+            self.end_headers()
+            self.wfile.write(b'Endpoint not found')
+            return
+        
+        else:
+            endpoints[self.path]()
+
+
 class Worker(Parallel):
     def __init__(s, address: str, port: int):
         rpcs = {"worker-accept": s.worker_accept}
@@ -10,9 +47,10 @@ class Worker(Parallel):
         
         super().__init__(address, port, rpcs, httpport)
 
-        #http_server = HTTPServer(("", s.httpport), WorkerHttpHandler).serve_forever
-        #http_thread = threading.Thread(target=http_server,name="http-server")
-        #http_thread.start()
+        http_server = HTTPServer(("", httpport), lambda *args, **kwargs: WorkerHttpHandler(s, *args, **kwargs)).serve_forever
+        http_thread = threading.Thread(target=http_server,name="http-server")
+        http_thread.start() 
+
 
     def join_network(s, address, port):
         s.send_message(address, port, "worker-join", {"web":s.httpport})
