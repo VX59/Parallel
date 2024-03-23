@@ -1,6 +1,6 @@
-This is where Chief and Workers will write files to
+This is where Chief and Workers will write files to in their docker containers
 
-Chief/
+chief/app/
 	resources/
 		modules/
 			module-name/
@@ -31,7 +31,7 @@ Chief/
 					...
 			...
 			
-Worker/
+worker/app/
 	resources/
 		modules/
 			module-name/
