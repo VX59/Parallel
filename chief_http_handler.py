@@ -2,6 +2,7 @@ from http.server import BaseHTTPRequestHandler
 import importlib.util
 import os
 import random
+import uuid
 import tarfile
 
 from utils import create_archive
@@ -12,31 +13,58 @@ class ChiefHttpHandler(BaseHTTPRequestHandler):
         self.chief = chief
         super().__init__(*args, **kwargs)
 
-    def submit_work():    # worker
+    def process_submission():    # worker
             pass
     
-    def upload_data(self):      # client, receives a tar file containing the dataset
+    def receive_data(self):
+        # segment multipart form data
         content_length = int(self.headers['Content-Length'])
         data_buffer:bytes = self.rfile.read(content_length)
-        tarpath = "/app/resources/jobs/sample-job.tar"
-        with open(tarpath, "wb") as tar:
-            tar.write(data_buffer)
-            tar.close()
+        boundary = data_buffer.split(b"\n")[0]
+        parts = data_buffer.split(boundary)
+        # First part is empty, last part is module name
+        files = parts[1:-1]
+        # get module name
+        form_data = parts[-1].split(b"\n")[1:-2]
+        module_name = form_data[-1][:-1].decode("utf-8")
+        job_name = "job-"+str(uuid.uuid4().hex)
+        print(job_name)
+        job_path = f"/app/resources/jobs/{job_name}/"
+        os.mkdir(job_path)
+        os.mkdir(job_path+"fragment-cache")
+        os.mkdir(job_path+"data-files")
+        os.mkdir(job_path+"results")
 
-        with tarfile.open(tarpath, "r") as tar:
-            # Deprecated
-            tar.extractall("/app/resources/jobs/")
-            tar.close()
 
-        os.remove(tarpath)
-        os.mkdir("/app/resources/jobs/sample-job/fragment-cache")
+        with open(job_path+"module", "w") as writer:
+            writer.write(module_name)
+            writer.close()
+
+        for file in files:
+            # parse file headers
+            file_lines = file.split(b"\n")
+            header = file_lines[1]
+            header_fields = header.split(b";")[1:]
+
+            key_position = header_fields[0].find(b"name")
+            key = header_fields[0][key_position+2+len("name"):-1].decode("utf-8")
+
+            filename_position = header_fields[1].find(b"filename")
+            filename = header_fields[1][filename_position+2+len("filename"):-2].decode("utf-8")
+
+            # write files (one or more file can be upload with the same key)
+            body:bytes = file_lines[4:]
+            if key == "data-files":
+                with open(job_path+"data-files/"+filename, "wb") as writer:
+                    writer.writelines(body)
+                    writer.close()
 
         self.send_response(200)
         self.send_header('Content-type', 'text/html')
         self.end_headers()
-        self.wfile.write(b'Tar file received successfully')
+        self.wfile.write(b'data files received successfully')
 
-    def upload_module(self):  # custom form data parser cuz cgi is depreceated and email package sucks
+    def receive_module(self):  # custom form data parser cuz cgi is depreceated and email package sucks
         # segment multipart form data
         content_length = int(self.headers['Content-Length'])
         data_buffer:bytes = self.rfile.read(content_length)
@@ -87,8 +115,8 @@ class ChiefHttpHandler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(b"successfuly uploaded module")
 
-    def initiate_job(self): # client
-        # load splitter module
+    def activate_network(self): # client
+        # load splitter module and aquire the generator
         spec = importlib.util.spec_from_file_location("splitter", "/app/resources/modules/sample_module/Butcher/Split.py")
         splitter = importlib.util.module_from_spec(spec)
         spec.loader.exec_module(splitter)
@@ -107,10 +135,10 @@ class ChiefHttpHandler(BaseHTTPRequestHandler):
         print(first_fragment)
 
     def do_POST(self):
-        endpoints = {"/initiate/job":self.initiate_job,
-                     "/upload/module":self.upload_module,
-                     "/upload/data":self.upload_data,
-                     "/submit/work":self.submit_work}
+        endpoints = {"/initiate/job":self.activate_network,
+                     "/upload/module":self.receive_module,
+                     "/upload/data":self.receive_data,
+                     "/submit/work":self.process_submission}
         
         if self.path not in endpoints:
             self.send_response(404)

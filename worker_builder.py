@@ -17,8 +17,12 @@ container.exec_run("mkdir -p /app/resources/jobs", workdir="/")
 # Set up dependencies
 container.exec_run("pip install docker", workdir="/")
 
-# copy the protocol and chief to the container
-for file in ["protocol.py", "worker.py", "utils.py", "worker_http_handler.py"]:
+# copy files to the container
+required_files = ["protocol.py", 
+                  "worker.py", 
+                  "utils.py", 
+                  "worker_http_handler.py"]
+for file in required_files:
     with open(file, "rb") as worker:
         protocol_buffer:bytes = worker.read()
 
