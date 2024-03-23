@@ -1,3 +1,5 @@
+import os
+import requests
 from protocol import Parallel
 from docker_utils import get_container, create_archive
         
@@ -43,11 +45,18 @@ class Chief(Parallel):
         data = {"supervisor":(s.address, s.port), "web":s.httpport, "trust-factor":s.trust_factor}
         s.send_message(worker_address,worker_port,"worker-accept",data)
 
-    # Chief http client methods
-    def upload_processor(module_path:str, job_id:str):
-        # to do
-        pass
-    
+    # upload processor files to all workers
+    def upload_processor(s, proc_archive_path:str, job_id:str):
+        for (worker_address, _, worker_httpport) in s.workers:
+            s.upload_file("processor", worker_address, worker_httpport, proc_archive_path, job_id)
+
+    # upload a file to a worker
+    def upload_file(self, endpoint:str, worker_address:str, worker_httpport:int, file_path:str, job_id:str):
+        print("uploading file", file_path, "to", worker_address, worker_httpport)
+        filename = os.path.basename(file_path)
+        requests.post(f"http://{worker_address}:{worker_httpport}/{endpoint}", files={filename:open(file_path, 'rb')})
+
+
 import sys
 import socket
 
