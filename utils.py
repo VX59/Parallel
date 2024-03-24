@@ -36,3 +36,22 @@ def create_archive_from_bytes(data: bytes, data_name_in_tar: str) -> bytes:
         archive.addfile(info, data_io)
     
     return archive_io.getvalue()
+
+def parse_file_headers(file:bytes):
+    file_lines = file.split(b"\n")
+    header:bytes = file_lines[1]
+    header_fields = header.split(b";")[1:]
+
+    key_position:int = header_fields[0].find(b"name")
+    key:str = header_fields[0][key_position+2+len("name"):-1].decode("utf-8")
+
+    filename_position:int = header_fields[1].find(b"filename")
+    filename:str = header_fields[1][filename_position+2+len("filename"):-2].decode("utf-8")
+    body:bytes = file_lines[4:]
+
+    return key, filename, body
+
+def get_module_name(parts:list[bytes]) -> str:
+    form_data:list[bytes] = parts[-1].split(b"\n")[1:-2]
+    module_name:str = form_data[-1][:-1].decode("utf-8")
+    return module_name
