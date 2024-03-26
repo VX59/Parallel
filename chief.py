@@ -10,38 +10,45 @@ import socket
 
 class Chief(Parallel):
     # creates a new group and start a docker container http server
-    def __init__(s, address:str, port:int, httpport:int):
-        rpcs = {"worker-join":s.worker_join}
-        s.trust_factor = 1
-        s.workers = []
+    def __init__(self, address:str, port:int, httpport:int):
+        rpcs = {"worker-join":self.worker_join}
+        self.trust_factor = 1
+        self.workers = []
+        self.fragment_size_limit = 2**13    # 8 MB
 
         super().__init__(address, port, rpcs, httpport)
-        http_server = HTTPServer(("", httpport), lambda *args, **kwargs: ChiefHttpHandler(s, *args, **kwargs)).serve_forever
+        http_server = HTTPServer(("", httpport), lambda *args, **kwargs: ChiefHttpHandler(self, *args, **kwargs)).serve_forever
         http_thread = threading.Thread(target=http_server,name="http-server")
-        http_thread.start() 
+        http_thread.start()
 
     # add a worker to the network
-    def worker_join(s, message:dict):
+    def worker_join(self, message:dict):
         worker_address = message['sender'][0]
         worker_port = int(message['sender'][1])
         worker_httpport = int(message['data']['web'])
-        s.workers.append((worker_address,worker_port,worker_httpport))
+        self.workers.append((worker_address,worker_port,worker_httpport))
 
         print("worker joined", worker_address, worker_port, worker_httpport)
 
-        data = {"supervisor":(s.address, s.port), "web":s.httpport, "trust-factor":s.trust_factor}
-        s.send_message(worker_address,worker_port,"worker-accept",data)
+        data = {"supervisor":(self.address, self.port), "web":self.httpport, "trust-factor":self.trust_factor}
+        self.send_message(worker_address,worker_port,"worker-accept",data)
 
     # upload processor files to all workers
-    def upload_processor(s, proc_archive_path:str, job_id:str):
-        for (worker_address, _, worker_httpport) in s.workers:
-            s.upload_file("/upload/processor", worker_address, worker_httpport, proc_archive_path, job_id)
+    def upload_processor(self, proc_archive_path:str):
+        for (worker_address, _, worker_httpport) in self.workers:
+            self.upload_file("/upload/processor", worker_address, worker_httpport, proc_archive_path)
 
     # upload a file to a worker
-    def upload_file(self, endpoint:str, worker_address:str, worker_httpport:int, file_path:str, job_id:str):
+    def upload_file(self, endpoint:str, worker_address:str, worker_httpport:int, file_path:str, module_name:str=None):
         print("uploading file", file_path, "to", worker_address, worker_httpport)
         filename = os.path.basename(file_path)
-        requests.post(f"http://{worker_address}:{worker_httpport}/{endpoint}", files={filename:open(file_path, 'rb')})
+        response = requests.post(f"http://{worker_address}:{worker_httpport}/{endpoint}", files={filename:open(file_path, 'rb')},
+                                 data={"module-name":module_name})
+        print(response)
+
+    def activate_worker(self, worker_info, fragment_path:str, module_name:str):
+        address,port,httpport = worker_info
+        self.upload_file("activate",address,httpport,fragment_path, module_name)
 
 if __name__ == "__main__":
     args = sys.argv

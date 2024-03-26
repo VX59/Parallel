@@ -55,3 +55,8 @@ def get_module_name(parts:list[bytes]) -> str:
     form_data:list[bytes] = parts[-1].split(b"\n")[1:-2]
     module_name:str = form_data[-1][:-1].decode("utf-8")
     return module_name
+
+def get_job_name(parts:list[bytes]) -> str:
+    form_data:list[bytes] = parts[-2].split(b"\n")[3]
+    job_name:str = form_data[0:-1].decode("utf-8")
+    return job_name
