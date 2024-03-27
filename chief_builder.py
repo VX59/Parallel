@@ -7,14 +7,9 @@ import subprocess
 address:str = socket.gethostname()
 port:int = 11030
 httpport:int = 11040
-
 name = "chief"
 
 if __name__ == "__main__":
-    
-    running_containers = docker.from_env().containers.list()
-    running_names = list(map(lambda x: x.name, running_containers))
-
     container = get_container(name, port=port, httpport=httpport)
     print("setting up environment...")
 
@@ -27,7 +22,12 @@ if __name__ == "__main__":
     container.exec_run("pip install docker", workdir="/")
 
     # copy the protocol and chief to the container
-    for file in ["protocol.py", "chief.py", "utils.py", "chief_http_handler.py"]:
+    required_files = ["protocol.py", 
+                      "chief.py", 
+                      "utils.py",
+                       "chief_http_handler.py"]
+
+    for file in required_files:
         with open(file, "rb") as chief:
             protocol_buffer:bytes = chief.read()
 
@@ -43,6 +43,6 @@ if __name__ == "__main__":
     client = docker.from_env()
     exec_id = client.api.exec_create(container.id, f"python /app/chief.py host.docker.internal {port} {httpport}", stdout=True, stderr=True, tty=True)
     output = client.api.exec_start(exec_id, stream=True)
-
+    # log docker outputs
     for line in output:
         print(line.decode())
