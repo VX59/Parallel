@@ -104,7 +104,7 @@ class ChiefHttpHandler(BaseHTTPRequestHandler):
             writer.close()
         
         # distribute processor to the workers
-        self.chief.upload_processor(module_path + "Processor.tar")
+        self.chief.upload_processor(module_path + "Processor.tar", module_name)
 
         self.send_response(200)
         self.end_headers()
