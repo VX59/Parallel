@@ -12,13 +12,8 @@ class Chief(Parallel):
     # creates a new group and start a docker container http server
     def __init__(self, address:str, port:int, httpport:int):
         rpcs = {"worker-join":self.worker_join}
-        self.trust_factor = 1
         self.contracts = []
         self.workers = []
-        
-        # the price at which the node sells its resources
-        self.price = len(self.workers)/self.trust_factor if self.trust_factor > 0 else 0
-        self.network_potential = 0
         
         super().__init__(address, port, rpcs, httpport)
         http_server = HTTPServer(("", httpport), lambda *args, **kwargs: ChiefHttpHandler(self, *args, **kwargs)).serve_forever
@@ -31,7 +26,6 @@ class Chief(Parallel):
         worker_port = int(message['sender'][1])
         worker_httpport = int(message['data']['web'])
         self.workers.append((worker_address,worker_port,worker_httpport))
-        self.network_potential += 
         print("worker joined", worker_address, worker_port, worker_httpport)
 
         data = {"supervisor":(self.address, self.port), "web":self.httpport, "trust-factor":self.trust_factor}

@@ -37,6 +37,9 @@ def create_archive_from_bytes(data: bytes, data_name_in_tar: str) -> bytes:
     
     return archive_io.getvalue()
 
+
+# takes the partition of the multipart that contains a file
+# reads the headers to return the file name, its form-key and the body of the file in bytes
 def parse_file_headers(file:bytes):
     file_lines = file.split(b"\n")
     header:bytes = file_lines[1]

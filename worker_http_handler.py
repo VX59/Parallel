@@ -20,7 +20,7 @@ class WorkerHttpHandler(BaseHTTPRequestHandler):
         self.end_headers()
         self.wfile.write(b'Processor uploaded!')
 
-    def activate(self):
+    def receive_fragment(self):
         content_length = int(self.headers['Content-Length'])
         data_buffer:bytes = self.rfile.read(content_length)
         boundary:bytes = data_buffer.split(b"\n")[0]
@@ -30,16 +30,13 @@ class WorkerHttpHandler(BaseHTTPRequestHandler):
         # get module name
         module_name:str = get_module_name(parts)
 
-        print(module_name, frag_name)
-
-        #self.worker.do_work(self.archive)
         self.send_response(200)
         self.end_headers()
         self.wfile.write(b'fragment received')
 
     def do_POST(self):
         endpoints = {"/upload/processor":self.recieve_processor,
-                     "/activate":self.activate}
+                     "/upload/fragment":self.receive_fragment}
         
         if self.path not in endpoints:
             self.send_response(404)
