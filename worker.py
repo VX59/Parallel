@@ -1,6 +1,5 @@
 from http.server import HTTPServer
 from protocol import Parallel
-from utils import get_container
 import threading
 from worker_http_handler import WorkerHttpHandler
 import sys
@@ -30,18 +29,7 @@ class Worker(Parallel):
         return
     
     def do_work(self, processor_archive):
-        container = get_container("Parallel-Worker")
-        print("Ensuring working directory exists...")
-        container.exec_run("mkdir -p /app", workdir="/")
-
-        print("Copying processor to container...")
-        container.put_archive("/app", processor_archive)
-
-        print("Executing processor...")
-        result = container.exec_run("python /app/processor.py", workdir="/")
-
-        print("\nOutput from processor:", result.output.decode())
-        print("Don't forget to \033[91mclean up the container\033[0m when you're done!\n")
+        pass
 
 if __name__ == "__main__":
     args = sys.argv

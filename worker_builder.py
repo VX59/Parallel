@@ -1,45 +1,10 @@
-from utils import get_container, create_archive_from_bytes
-import socket
-import docker
+from builder import Builder
 
-# the chief runs in a docker container
-address:str = socket.gethostname()
-port:int = 11080
-httpport:int = 11090
-name = "worker"
+worker = Builder("Parallel-Worker", 11080, 11090,
+                required_files = ["protocol.py",
+                                  "worker.py",
+                                  "utils.py",
+                                  "worker_http_handler.py"],
+                workdirs=['/app/resources/processors', '/app/resources/jobs'])
 
-if __name__ == "__main__":
-    container = get_container("worker", port=port, httpport=httpport)
-    print("setting up environment...")
-
-    # create working directories
-    container.exec_run("mkdir -p /app/resources/processors", workdir="/")
-    container.exec_run("mkdir -p /app/resources/jobs", workdir="/")
-
-    # Set up dependencies
-    container.exec_run("pip install docker", workdir="/")
-
-    # copy files to the container
-    required_files = ["protocol.py", 
-                    "worker.py", 
-                    "utils.py", 
-                    "worker_http_handler.py"]
-    for file in required_files:
-        with open(file, "rb") as worker:
-            protocol_buffer:bytes = worker.read()
-
-            protocol_archive:bytes = create_archive_from_bytes(protocol_buffer, file)
-            container.put_archive("/app/", protocol_archive)
-
-            worker.close()
-
-    print(f"{address} is accepting connections at port {port}", )
-    print(f"{address}'s starting http server at port {httpport}")
-
-    # Start the worker
-    client = docker.from_env()
-    exec_id = client.api.exec_create(container.id, f"python /app/worker.py host.docker.internal {port} {httpport}", stdout=True, stderr=True, tty=True)
-    output = client.api.exec_start(exec_id, stream=True)
-    # log docker outputs
-    for line in output:
-        print(line.decode())
+worker.start(f"python /app/worker.py host.docker.internal {worker.port} {worker.httpport}")
