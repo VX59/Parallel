@@ -1,11 +1,3 @@
-<head>
-  <style>
-    body {
-      font-family: "Times New Roman", Times, serif;
-      font-size: 16px;}
-
-  </style>
-</head>
 <body>
   
   <h1>Guidelines for the Butcher</h1>
