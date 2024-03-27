@@ -44,10 +44,13 @@
     This involves defining a function called <code>merger(fragment:bytes)</code> that takes a result segment and maps it to a 
   final result. This method has access to the results directory you can use it however you want. The 
   chief will tar this and send it back to you after completing the job.
+  </p>
+  <p>
+  <img src="figures/figure-1.png", style="width:75%; display:block; margin-left:auto; margin-right:auto">
+  </p>
   <p>
     Our backend will use the methods you defined to segment data and merge results lazily as it 
   receives requests from workers.
-  <img src="figures/figure-1.png">
   </p>
     This diagram represents the processing loop. It starts when the client starts a job, using the splitter 
   to distribute the first round of fragments. As each worker finishes their task, they submit their work 
