@@ -59,7 +59,7 @@
   <h1>Requirements</h1>
   <ul>
     <li>NO component should exceed some maximum recursion depth enforced by the chief.</li>
-    <li>The <code>splitter()</code> method defines a python generator using the <code>yield</code> keyword. No other method 
+    <li>The <code>splitter(fragment:bytes)</code> method defines a python generator using the <code>yield</code> keyword. No other method 
       in your package should yield anything.</li>
     <li>Your splitter does not produce infinite sequences.</li>
     <li>Your merger does not write more than some maximum amount of data enforced by the 
