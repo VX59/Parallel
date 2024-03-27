@@ -1,5 +1,4 @@
 <body>
-  
   <h1>Guidelines for the Butcher</h1>
   <p>
     This document is intended to help you understand the purpose the Butcher plays in the 
@@ -41,7 +40,7 @@
   applicable to you.
   </p>
   <p>
-    This involves defining a function called <code>merger(fragment:bytes)</code> that takes a result segment and maps it to a 
+    This involves defining a function called <code>merger(fragment:bytes, job_name:str)</code> that takes a result segment and maps it to a 
   final result. This method has access to the results directory you can use it however you want. The 
   chief will tar this and send it back to you after completing the job.
   </p>
@@ -84,7 +83,35 @@
   <p>We suggest if you are having trouble picturing certain implementation details that you look 
   at the sample modules provided in the repository and play with them. We also encourage you to 
   use CHAT-GPT to help write this module if needed and you can provide it with the requirements. To 
-  learn more about python generators you can read this article.</p>
-  <a href="https://realpython.com/introduction-to-python-generators/">python generators</a>
+  learn more about python generators you can read this article.
+   <br><a href="https://realpython.com/introduction-to-python-generators/">python generators</a></p>
 
+
+<h1>Example</h1>
+<p>This is a toy example that may help you picture whats going on here</p>
+<h3>Sample Split.py</h3>
+<pre><code>import numpy as np
+def splitter(dataset_path:str):    # example generator for an npy file (numpy array)
+    with open(path, "rb") as file:
+        while True:
+            fragment:bytes = file.read(64) # the fragment size in bytes
+            if not fragment:
+                break
+            yield np.frombuffer(fragment, dtype=np.int16)
+</code></pre>
+<h3>Sample Processor.py</h3>
+<pre><code>import numpy as np
+def Processor(fragment:bytes)->bytes:
+    # do stuff here
+    return fragment
+</code></pre>
+<h3>Sample Merge.py</h3>
+<pre><code>
+# append the result fragments to a file
+def Merge(fragment:bytes, job_name:str):
+    resultpath=f"/app/resources/{job_name}/results/result"
+    with open(resultpath, "ab") as file:
+        file.write(file, fragment)
+        file.close()
+</code></pre>
 </body>
