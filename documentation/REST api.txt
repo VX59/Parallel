@@ -2,7 +2,7 @@ REST API descriptions
 
 Web-UI hosted on Chief
 
-POST    conect/
+POST    connect/
         -password
         response:   200, served /webui-index.html
 
@@ -10,14 +10,19 @@ POST    upload/data/
         -data files
         response: 200, successfully uploaded data
 
-POST    upload/module-package/
+POST    upload/module/
         -module package files
         response: 200, successfully uploaded module package
 
-POST    initiate_job/
+POST    initiate/job/
         -module name
         -fragments enpoint
         resonse: 200, network activation successful
+        
+POST    submit/work
+        -result fragment (.tar)
+        -job-id
+        response: 200, successfully uploaded result
 
 GET     retreive/work/
         resposne: 200, results
@@ -32,10 +37,3 @@ POST    activate
         -fragment   (.tar)
         -job-id
         response: 200, successfully uploaded fragment
-
-Other Chief http server for workers
-
-POST    submit/work
-        -result fragment (.tar)
-        -job-id
-        response: 200, successfully uploaded result

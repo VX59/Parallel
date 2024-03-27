@@ -26,7 +26,7 @@
   at a time. The generator saves its internal state before yielding the data and iterating to the next 
   state. With Python this is actually super easy to do in practice.</p>
   <p>
-    It involves defining a function called <code>splitter(fragment:bytes)</code> that segments your data or defines some kind of 
+    It involves defining a function called <code>splitter(dataset_path:str)->bytes:</code> that segments your data or defines some kind of 
   iterable, <b>finite</b> input space. For example, when you normally move data to some kind of buffer in 
   a loop you can instead just yield it to the caller.
   </p>
@@ -46,12 +46,13 @@
   chief will tar this and send it back to you after completing the job.
   </p>
   <p>
-  <img src="figures/figure-1.png", style="width:75%; display:block; margin-left:auto; margin-right:auto">
-  </p>
-  <p>
     Our backend will use the methods you defined to segment data and merge results lazily as it 
   receives requests from workers.
   </p>
+  <p>
+  <img src="figures/figure-1.png", style="width:75%; display:block; margin-left:auto; margin-right:auto">
+  </p>
+  <p>
     This diagram represents the processing loop. It starts when the client starts a job, using the splitter 
   to distribute the first round of fragments. As each worker finishes their task, they submit their work 
   back to the chief and it gets processed by the merger in turn causing another the next fragment to 
@@ -62,7 +63,7 @@
   <h1>Requirements</h1>
   <ul>
     <li>NO component should exceed some maximum recursion depth enforced by the chief.</li>
-    <li>The <code>splitter(fragment:bytes)</code> method defines a python generator using the <code>yield</code> keyword. No other method 
+    <li>The <code>splitter()</code> method defines a python generator using the <code>yield</code> keyword. No other method 
       in your package should yield anything.</li>
     <li>Your splitter does not produce infinite sequences.</li>
     <li>Your merger does not write more than some maximum amount of data enforced by the 
