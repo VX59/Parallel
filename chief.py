@@ -1,4 +1,5 @@
 import os
+import signal
 import requests
 from chief_http_handler import ChiefHttpHandler
 from protocol import Parallel
@@ -6,7 +7,6 @@ from http.server import HTTPServer
 import threading
 import os
 import sys
-import socket
 
 class Chief(Parallel):
     # creates a new group and start a docker container http server
@@ -49,6 +49,8 @@ class Chief(Parallel):
         self.upload_file("/upload/fragment",address,httpport,fragment_path, module_name)
 
 if __name__ == "__main__":
+    signal.signal(signal.SIGINT, lambda sig, frame: sys.exit(0))
+    
     args = sys.argv
     address = args[1]
     port = int(sys.argv[2])
