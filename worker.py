@@ -23,8 +23,7 @@ class Worker(Parallel):
     def worker_accept(self, message: dict):
         self.supervisors.append((message["data"]["supervisor"][0], 
                               message["data"]["supervisor"][1], 
-                              message["data"]["web"],
-                              message["data"]["trust-factor"]))
+                              message["data"]["web"]))
 
     def upload_result(self, resourcepath:str, job_id:str):
         # to do

@@ -29,7 +29,7 @@ class WorkerHttpHandler(BaseHTTPRequestHandler):
         files:list[bytes] = parts[1:-1]
         # get module name
         module_name:str = get_module_name(parts)
-
+        print(data_buffer)
         self.send_response(200)
         self.end_headers()
         self.wfile.write(b'fragment received')
