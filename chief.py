@@ -28,7 +28,7 @@ class Chief(Parallel):
         self.workers.append((worker_address,worker_port,worker_httpport))
         print("worker joined", worker_address, worker_port, worker_httpport)
 
-        data = {"supervisor":(self.address, self.port), "web":self.httpport, "trust-factor":self.trust_factor}
+        data = {"supervisor":(self.address, self.port), "web":self.httpport}
         self.send_message(worker_address,worker_port,"worker-accept",data)
 
     # upload processor files to all workers
@@ -46,7 +46,7 @@ class Chief(Parallel):
 
     def activate_worker(self, worker_info, fragment_path:str, module_name:str):
         address,_,httpport = worker_info
-        self.upload_file("activate",address,httpport,fragment_path, module_name)
+        self.upload_file("/upload/fragment",address,httpport,fragment_path, module_name)
 
 if __name__ == "__main__":
     args = sys.argv
