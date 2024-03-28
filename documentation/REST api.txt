@@ -24,7 +24,7 @@ POST    submit/work
         -job-id
         response: 200, successfully uploaded result
 
-GET     retreive/work/
+GET     retrieve/work/
         resposne: 200, results
 
 Worker http server
