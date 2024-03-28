@@ -37,7 +37,7 @@ worker/app/
 				...
 		jobs/
 			job-name/
-				processor.txt
+				processor.name
 				cache/
 					fragment files
 					...
