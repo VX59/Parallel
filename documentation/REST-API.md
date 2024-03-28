@@ -1,61 +1,47 @@
 # REST API descriptions
-<br>
 
-## Chief HTTP Server
+## Web-UI hosted on Chief
+```
+POST    connect/
+        - password
+        response:   200, served /webui-index.html
+```
+```
+POST    upload/data/
+        -data-files
+        response: 200, successfully uploaded data
+```
+```
+POST    upload/module/
+        -module-package-files
+        response: 200, successfully uploaded module package
+```
+```
+POST    initiate/job/
+        -module-name
+        -fragments-endpoint
+        response: 200, network activation successful
+```
+```        
+POST    submit/work
+        -result-fragment (.tar)
+        -job-id
+        response: 200, successfully uploaded result
+```
+```
+GET     retrieve/work/
+        response: 200, results
+```
 
-### POST    connect/
-> ##### Body parameters
-> > - `password`
-> ##### Response
-> > - 200: served `/webui-index.html`
-
-### POST    upload/data/
-> ##### Body parameters
-> > - `data`
-> > - `files`
-> ##### Response
-> > - 200: successfully uploaded data
-
-### POST    upload/module/
-> ##### Body parameters
-> > - `module` 
-> > - `package`
-> > - `files`
-> ##### Response
-> >- 200: successfully uploaded module package
-
-### POST    initiate/job/
-> ##### Body parameters
-> > - `module name`
-> > - `fragments endpoint`
-> ##### Response
-> >- 200: network activation successful
-        
-### POST    submit/work
-> ##### Body parameters
-> > - `result fragment`: `.tar` file
-> > - `job-id`
-> ##### Response
-> >- 200: successfully uploaded result
-
-### GET     retrieve/work/
-> ##### Response
-> > - 200: `results`
-
-<br>
-
-# Worker HTTP Server
-
-### POST    upload/processor
-> ##### Body parameters
-> > - `processor`
-> > - `module`
-> ##### Response
-> > - 200: sucessfully uploaded processor
-
-### POST    activate
-> ##### Body parameters
-> > - `fragment`: `.tar` file
-> > - `job-id`
-> ##### Response
-> > - 200: successfully uploaded fragment
+## Worker http server
+```
+POST    upload/processor
+        -processor-module
+        response: 200, sucessfully uploaded processor
+```
+```
+POST    activate
+        -fragment   (.tar)
+        -job-id
+        response: 200, successfully uploaded fragment
+```
