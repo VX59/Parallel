@@ -1,5 +1,7 @@
-This is where Chief and Workers will write files to in their docker containers
+### This is where [Chief](#chief) and [Workers](#workers) will write files to in their docker containers
 
+##### Chief
+```md
 chief/app/
 	resources/
 		module-archives/
@@ -28,7 +30,10 @@ chief/app/
 					result file(s)
 					...
 			...
-			
+```
+
+##### Workers
+```md
 worker/app/
 	resources/
 		processors/
@@ -41,3 +46,4 @@ worker/app/
 				cache/
 					fragment files
 					...
+```
