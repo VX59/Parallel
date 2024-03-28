@@ -1,46 +1,43 @@
-This is where Chief and Workers will write files to
+This is where Chief and Workers will write files to in their docker containers
 
-Chief/
+chief/app/
 	resources/
+		module-archives/
+			module-name.tar
+			...
 		modules/
 			module-name/
-				module-name.tar -> (Processor.tar, Butcher.tar)
 				Processor/
 					Processor.py
 					...
 				Butcher/
 					Split.py
 					Merge.py
+					...
 			...
-	
 		jobs/
-			job-id/
-				module.txt
-				data/
+			job-name/
+				module
+				data-files/
 					dataset file(s)
 					...
-				fragment_cache/
+				fragment-cache/
 					fragment files
-					...
-				
-				result_fragment_cache/
-					result fragment files
 					...
 				results/
 					result file(s)
 					...
 			...
 			
-Worker/
+worker/app/
 	resources/
-		modules/
+		processors/
 			module-name/
 				Processor.py
 				...
-		
 		jobs/
-			job-id/
-				processor.txt
-				fragment_cache/
+			job-name/
+				processor.name
+				cache/
 					fragment files
 					...
