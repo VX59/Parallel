@@ -8,4 +8,4 @@ Parallel is a command-and-control distributed botnet. You can view the work in p
 [Guidelines for The Butcher](./documentation/butcher-guidlines.md) \
 [REST API](./documentation/REST-API.md) \
 [RPCs](./documentation/RPCs.md) \
-[Directory Structure](./documentation/Directories.md) \
+[Directory Structure](./documentation/Directories.md)
