@@ -1,4 +1,5 @@
 import os
+import signal
 import requests
 from chief_http_handler import ChiefHttpHandler
 from protocol import Parallel
@@ -146,6 +147,8 @@ class Chief(Parallel):
             self.activate_worker(worker,fragment_path,module_name)
 
 if __name__ == "__main__":
+    signal.signal(signal.SIGINT, lambda sig, frame: sys.exit(0))
+    
     args = sys.argv
     address = args[1]
     port = int(sys.argv[2])

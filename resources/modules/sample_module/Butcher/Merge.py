@@ -1,8 +1,7 @@
-import numpy as np
-
-# add the result fragments to a list
-def Merge(resourcepath, resultpath):
-    data = np.load(resourcepath)
+# append the result fragments to a file
+def Merge(fragment:bytes, job_name:str):
+    resultpath=f"/app/resources/{job_name}/results/result"
 
     with open(resultpath, "ab") as file:
-        np.save(file, data)
+        file.write(file, fragment)
+        file.close()
