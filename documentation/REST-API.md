@@ -3,7 +3,7 @@
 ## Web-UI hosted on Chief
 ```
 POST    connect/
-        - password
+        -password
         response:   200, served /webui-index.html
 ```
 ```
