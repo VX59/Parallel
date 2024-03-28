@@ -29,27 +29,12 @@ class ChiefHttpHandler(BaseHTTPRequestHandler):
 
         print(job_name)
         job_path = f"/app/resources/jobs/{job_name}/"
-        os.mkdir(job_path)
-        os.mkdir(f"{job_path}fragment-cache")
-        os.mkdir(f"{job_path}data-files")
-        os.mkdir(f"{job_path}results")
-
-        with open(f"{job_path}module", "w") as writer:
-            writer.write(module_name)
-            writer.close()
-
-        for file in files:
-            key, filename, body = parse_file(file, boundary)
-
-            if key == "data-files":
-                with open(f"{job_path}data-files/{filename}", "wb") as writer:
-                    writer.writelines(body)
-                    writer.close()
-
+        
+        self.chief.make_job_dir(job_path)
+        self.chief.write_data_files(files, job_path, boundary, module_name)
         self.send_response(200)
-        self.send_header('Content-type', 'text/html')
         self.end_headers()
-        self.wfile.write(b'data files received successfully')
+        self.wfile.write(b"data files received successfully")
 
     def receive_module(self):  # custom form data parser cuz cgi is depreceated and email package sucks
         # segment multipart form data
@@ -64,84 +49,36 @@ class ChiefHttpHandler(BaseHTTPRequestHandler):
         module_name = str(self.headers['module-name'])
         module_path = f"/app/resources/modules/{module_name}/"
 
-        if not os.path.exists(module_path):
-            os.mkdir(module_path)
-            os.mkdir(f"{module_path}Butcher/")
-            os.mkdir(f"{module_path}Processor/")
+        self.chief.make_module_dir(module_path)
+        self.chief.write_module_files(files, boundary, module_path)
+        self.chief.import_module_dependencies(module_path)
 
-        for file in files:
-            key, filename, body = parse_file(file, boundary)
-
-            # write files (one or more file can be upload with the same key)
-            if key == "splitter" or key == "merger":
-                with open(f"{module_path}Butcher/{filename}", "wb") as writer:
-                    writer.writelines(body)
-                    writer.close()
-            elif key == "processor":
-                with open(f"{module_path}Processor/{filename}", "wb") as writer:
-                    writer.writelines(body)
-                    writer.close()
-        
-
-        # import libraries dynamically
-        installed_packages = pkg_resources.working_set
-        package_names = [package.key for package in installed_packages]
-
-        # aquaire dependencies from splitter
-        with open(f"{module_path}Butcher/Split.py", "r") as script:
-            lines = script.readlines()
-            dependencies = [line.split(" ")[1] for line in lines if "import" in line]
-            print(dependencies)
-            for dep in dependencies:
-                if dep != package_names:
-                    subprocess.run(["pip","install",dep])
-            script.close()
-
-        # prepare processor for distribution
-        proc_archive_bytes = create_archive(f"{module_path}Processor")
-        with open(f"{module_path}Processor.tar", "wb") as writer:
-            writer.write(proc_archive_bytes)
-            writer.close()
-        
-        # distribute processor to the workers
+        self.chief.write_processor_archive(module_path)
         self.chief.upload_processor(f"{module_path}Processor.tar", module_name)
 
         self.send_response(200)
         self.end_headers()
         self.wfile.write(b"successfuly uploaded module")
 
+
     def activate_network(self): # client
         # load splitter module and aquire the generator
         # segment multipart form data
-        content_length = int(self.headers['Content-Length'])
         module_name = str(self.headers['module-name'])
         dataset_name = str(self.headers['dataset-name'])
-        job_name = str(self.headers['job-name'])
 
+        job_name = str(self.headers['job-name'])
         module_path:str = f"/app/resources/modules/{module_name}/"
 
-        spec = importlib.util.spec_from_file_location("splitter", f"{module_path}Butcher/Split.py")
-        splitter = importlib.util.module_from_spec(spec)
-        spec.loader.exec_module(splitter)
+        splitter_generator = self.chief.load_splitter_module(module_path, job_name, dataset_name)
 
-        Split = splitter.Split
-        self.splitter_generator = Split(f"/app/resources/jobs/{job_name}/data-files/{dataset_name}")
-
-        for worker in self.chief.workers:
-            fragment = next(self.splitter_generator)
-            fragname = f"str(uuid.uuid4().hex).fragment"
-            fragment_path = f"/app/resources/jobs/{job_name}/fragment-cache/{fragname}"
-            
-            with open(fragment_path, "wb") as file:
-                file.write(fragment)
-                file.close()
-
-            self.chief.activate_worker(worker,fragment_path,module_name)
-        
         self.send_response(200)
         self.end_headers()
         self.wfile.write(b"network activation successful")
-    
+
+        self.chief.distribute_first_round(splitter_generator, module_name, job_name)
+        
+        
     def do_POST(self):
         endpoints = {"/initiate/job":self.activate_network,
                      "/upload/module":self.receive_module,
@@ -151,7 +88,6 @@ class ChiefHttpHandler(BaseHTTPRequestHandler):
         if self.path not in endpoints:
             self.send_response(404)
             self.end_headers()
-            self.wfile.write(b'Endpoint not found')
-            return
-        
+            self.wfile.write(b"endpoint not found")
+
         else: endpoints[self.path]()
