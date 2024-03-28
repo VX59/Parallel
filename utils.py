@@ -40,7 +40,7 @@ def create_archive_from_bytes(data: bytes, data_name_in_tar: str) -> bytes:
 
 # takes the partition of the multipart that contains a file
 # reads the headers to return the file name, its form-key and the body of the file in bytes
-def parse_file_headers(file:bytes):
+def parse_file(file:bytes, boundary:bytes):
     file_lines = file.split(b"\n")
     header:bytes = file_lines[1]
     header_fields = header.split(b";")[1:]
@@ -50,16 +50,12 @@ def parse_file_headers(file:bytes):
 
     filename_position:int = header_fields[1].find(b"filename")
     filename:str = header_fields[1][filename_position+2+len("filename"):-2].decode("utf-8")
-    body:bytes = file_lines[4:]
+    print(file_lines)
+    print(boundary[:-2])
+    if boundary[:-4] in file_lines[-2]:
+        print("found unwanted shit", file_lines[-2])
+        file_lines.pop(-2)
+    body:bytes = file_lines[4:-1]
+    body[-1] = body[-1][:-1]
 
     return key, filename, body
-
-def get_module_name(parts:list[bytes]) -> str:
-    form_data:list[bytes] = parts[-1].split(b"\n")[1:-2]
-    module_name:str = form_data[-1][:-1].decode("utf-8")
-    return module_name
-
-def get_job_name(parts:list[bytes]) -> str:
-    form_data:list[bytes] = parts[-2].split(b"\n")[3]
-    job_name:str = form_data[0:-1].decode("utf-8")
-    return job_name

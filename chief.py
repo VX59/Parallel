@@ -32,23 +32,25 @@ class Chief(Parallel):
         self.send_message(worker_address,worker_port,"worker-accept",data)
 
     # upload a file to a worker
-    def upload_file(self, endpoint:str, worker_address:str, worker_httpport:int, file_path:str, module_name:str=None):
+    def upload_file(self, endpoint:str, worker_address:str, worker_httpport:int, file_path:str, headers:dict):
         print("uploading file", file_path, "to", worker_address, worker_httpport)
         filename = os.path.basename(file_path)
         
         response = requests.post(f"http://{worker_address}:{worker_httpport}/{endpoint}",
-                                 headers={'module-name':module_name},
+                                 headers=headers,
                                  files={filename:open(file_path, 'rb')})
         print(response)
 
     # upload processor files to all workers
     def upload_processor(self, proc_archive_path:str, module_name:str):
         for (worker_address, _, worker_httpport) in self.workers:
-            self.upload_file("/upload/processor", worker_address, worker_httpport, proc_archive_path,module_name)
+            headers = {'module-name':module_name}
+            self.upload_file("/upload/processor", worker_address, worker_httpport, proc_archive_path, headers)
 
     def activate_worker(self, worker_info, fragment_path:str, module_name:str):
         address,_,httpport = worker_info
-        self.upload_file("/upload/fragment",address,httpport,fragment_path, module_name)
+        headers = {'module-name':module_name}
+        self.upload_file("/upload/fragment",address,httpport,fragment_path, headers)
 
 if __name__ == "__main__":
     args = sys.argv
