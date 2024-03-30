@@ -48,17 +48,20 @@ new_b = Matrix([[max_size-500],
            [max_size-600],
            [max_size-520],
            [max_size-430],
-           [max_size-278]
+           [max_size-778]
            ])
 
-new_A = A = Matrix([[1,1],
-                    [2,1],
-                    [3,1],
-                    [4,1],
-                    [5,1],
-                    [6,1]
+# polynomial interpolation
+# describe the relationship with a polynomial
+new_A = A = Matrix([[1**2,1,1],
+                    [2**2,2,1],
+                    [3**2,3,1],
+                    [4**2,4,1],
+                    [5**2,5,1],
+                    [6**2,6,1]
                     ])
-
+def result(x):
+    return M*x**2+B*x+C
 new_At = new_A.transpose()
 
 lhs = new_At*new_A
@@ -72,6 +75,7 @@ results = x[0].col(-1)
 
 M=results[0]
 B=results[1]
+C=results[2]
 
 model = list(map(result, [1,2,3,4,5,6]))
 
@@ -80,15 +84,13 @@ plt.scatter([1,2,3,4,5,6],[[max_size-500],
            [max_size-600],
            [max_size-520],
            [max_size-430],
-           [max_size-278]
+           [max_size-778]
            ])
 
 plt.scatter([6],[result(6)])
 
 plt.plot([1,2,3,4,5,6],model)
 plt.show()
-
-print(result(2))
 
 # batch items if they are above the line, add them to batch buffer, if average size of batch_buffer is > model prediction for that size then send it
 # this allows us to batch fragments 3 and 4, we also batch 5 and 6
