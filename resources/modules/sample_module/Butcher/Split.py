@@ -8,4 +8,4 @@ def Split(path:str):    # example generator for an npy file (numpy array)
             if not fragment:
                 break
 
-            yield np.frombuffer(fragment, dtype=np.int16)
+            yield fragment

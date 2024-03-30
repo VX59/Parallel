@@ -1,14 +1,19 @@
 from http.server import BaseHTTPRequestHandler
-from utils import parse_file
+from utils import parse_file, import_module_dependencies
 import uuid
 import io
 import tarfile
+import json
+from urllib.parse import parse_qs
+
+import importlib.util
 class WorkerHttpHandler(BaseHTTPRequestHandler):
     def __init__(self, worker, *args, **kwargs):
         self.worker = worker
-        self.archive:bytes
         super().__init__(*args, **kwargs)
     
+    # accepts a processor from the chief when a user uploads a module
+    # it is not immediately loaded it is stored in a tar for later use
     def recieve_processor(self):
         content_length = int(self.headers['Content-Length'])
         module_name = str(self.headers['module-name'])
@@ -21,19 +26,21 @@ class WorkerHttpHandler(BaseHTTPRequestHandler):
         with tarfile.open(fileobj=io.BytesIO(file_bytes), mode='r') as tar:
             tar.extractall(f"/app/resources/processors/{module_name}")
 
-        self.send_response(200)
+        self.send_response(200,b'Processor uploaded!')
         self.end_headers()
         self.wfile.write(b'Processor uploaded!')
 
     def receive_fragment(self):
         content_length = int(self.headers['Content-Length'])
+        module_name = str(self.headers['module-name'])
+        job_name = str(self.headers['job-name'])
+    
+        fragment = self.rfile.read(content_length)
+        print("fragment",fragment)
         
-        data_buffer:bytes = self.rfile.read(content_length)
-        boundary:bytes = data_buffer.split(b"\n")[0]
-        parts:bytes = data_buffer.split(boundary)
-        # First part is empty, last part is module name
-        files:list[bytes] = parts[1:]
-        self.send_response(200)
+        self.worker.fragment_channel.put((fragment, job_name, module_name))
+
+        self.send_response(200,b'fragment received')
         self.end_headers()
         self.wfile.write(b'fragment received')
 

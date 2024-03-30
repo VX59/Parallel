@@ -5,15 +5,30 @@ import random
 import uuid
 import pkg_resources
 import subprocess
-from utils import create_archive, parse_file
+from utils import import_module_dependencies
 
 class ChiefHttpHandler(BaseHTTPRequestHandler):
     def __init__(self, chief, *args, **kwargs):
         self.chief = chief
+        self.merger=None
         super().__init__(*args, **kwargs)
 
-    def process_submission():    # worker
-            pass
+    def process_submission(self):    # worker
+        content_length = int(self.headers['Content-Length'])
+
+        # implement worker naming
+        worker_info = self.headers['worker-name'].split(",")
+        worker_info = (worker_info[0],"",worker_info[-1])
+        job_name = str(self.headers['job-name'])
+        module_name = str(self.headers['module-name'])
+        
+        result_buffer:bytes = self.rfile.read(content_length)
+        
+        self.chief.result_channel.put((result_buffer, job_name, module_name, worker_info))
+
+        self.send_response(200)
+        self.end_headers()
+        self.wfile.write(b"results successfully processed")
     
     def receive_data(self):
         # segment multipart form data
@@ -32,6 +47,7 @@ class ChiefHttpHandler(BaseHTTPRequestHandler):
         
         self.chief.make_job_dir(job_path)
         self.chief.write_data_files(files, job_path, boundary, module_name)
+        
         self.send_response(200)
         self.end_headers()
         self.wfile.write(b"data files received successfully")
@@ -51,7 +67,7 @@ class ChiefHttpHandler(BaseHTTPRequestHandler):
 
         self.chief.make_module_dir(module_path)
         self.chief.write_module_files(files, boundary, module_path)
-        self.chief.import_module_dependencies(module_path)
+        import_module_dependencies(f"{module_path}Butcher/Split.py")
 
         self.chief.write_processor_archive(module_path)
         self.chief.upload_processor(f"{module_path}Processor.tar", module_name)
@@ -70,14 +86,12 @@ class ChiefHttpHandler(BaseHTTPRequestHandler):
         job_name = str(self.headers['job-name'])
         module_path:str = f"/app/resources/modules/{module_name}/"
 
-        splitter_generator = self.chief.load_splitter_module(module_path, job_name, dataset_name)
-
+        self.chief.splitter_generator = self.chief.load_splitter_module(module_path, job_name, dataset_name)
+        self.chief.distribute_first_round(self.chief.splitter_generator, module_name, job_name)
+        
         self.send_response(200)
         self.end_headers()
-        self.wfile.write(b"network activation successful")
-
-        self.chief.distribute_first_round(splitter_generator, module_name, job_name)
-        
+        self.wfile.write(b"network activation successful")        
         
     def do_POST(self):
         endpoints = {"/initiate/job":self.activate_network,
