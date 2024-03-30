@@ -3,6 +3,14 @@ import threading
 import json
 from http.server import ThreadingHTTPServer
 
+class Fragment():
+    def __init__(self, name:str, order:int, content:bytes, module_name:str, job_name:str):
+        self.fragment_name = name
+        self.order = order
+        self.content = content
+        self.module_name = module_name
+        self.job_name = job_name
+
 class Parallel():
     # create a socket listener, then create message handler
     def __init__(self,address:str,port:int, rpcs:dict, httpport:int, httpHandler, itemHandler):
@@ -11,7 +19,8 @@ class Parallel():
         self.httpport:int = httpport
         self.rpcs:dict = rpcs
         self.quit = False
-        self.fragment_size_limit = 2**13    # 8 KB
+        self.fragment_size_limit = 2<<12    # 8 KB
+
         self.server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.server.bind(('0.0.0.0', self.port))
         self.server.listen(0)

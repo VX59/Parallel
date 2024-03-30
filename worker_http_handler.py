@@ -5,6 +5,7 @@ import io
 import tarfile
 import json
 from urllib.parse import parse_qs
+from protocol import Fragment
 
 import importlib.util
 class WorkerHttpHandler(BaseHTTPRequestHandler):
@@ -12,6 +13,10 @@ class WorkerHttpHandler(BaseHTTPRequestHandler):
         self.worker = worker
         super().__init__(*args, **kwargs)
     
+    def log_message(self, format: str, *args) -> None:
+        # implement loggin here
+        pass
+
     # accepts a processor from the chief when a user uploads a module
     # it is not immediately loaded it is stored in a tar for later use
     def recieve_processor(self):
@@ -34,11 +39,13 @@ class WorkerHttpHandler(BaseHTTPRequestHandler):
         content_length = int(self.headers['Content-Length'])
         module_name = str(self.headers['module-name'])
         job_name = str(self.headers['job-name'])
+        fragment_name = str(self.headers['frag-name'])
+        order = int(self.headers['frag-order'])
     
         fragment = self.rfile.read(content_length)
-        print("fragment",fragment)
         
-        self.worker.fragment_channel.put((fragment, job_name, module_name))
+        package = Fragment(fragment_name, order, fragment, module_name, job_name)
+        self.worker.fragment_channel.put(package)
 
         self.send_response(200,b'fragment received')
         self.end_headers()

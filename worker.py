@@ -6,6 +6,7 @@ import sys
 import importlib.util
 import queue
 from utils import parse_file, import_module_dependencies
+from protocol import Fragment
 
 import requests
 
@@ -13,7 +14,7 @@ class Worker(Parallel):
     def __init__(self, address: str, port: int, httpport:int):
         rpcs = {"worker-accept": self.worker_accept}
         self.supervisors = []  # (address, port, httpport, trust-factor)
-        self.fragment_channel = queue.Queue()
+        self.fragment_channel = queue.Queue()   # python channel
         self.active_processor = None
         self.quit = False
 
@@ -21,21 +22,19 @@ class Worker(Parallel):
 
     # process items from the channel (fragments) .. blocks the thread until the channel has at least 1 item
     def handle_items(self):
-        print("starting processor")
         while not self.quit:
-            fragment, job_name, module_name = self.fragment_channel.get()
-            print("accepted a fragment")
+            package:Fragment = self.fragment_channel.get()   # block
             # load the processor
-            module_path = f"/app/resources/processors/{module_name}/"
+            module_path = f"/app/resources/processors/{package.module_name}/"
 
             if self.active_processor == None:
                 import_module_dependencies(f"{module_path}Processor/Processor.py")
                 self.active_processor = self.load_processor_module(module_path)
 
             # pass the fragment to the processor
-            result:bytes = self.active_processor(fragment)
-            print(result)
-            self.submit_work(result, job_name, module_name) 
+            result:bytes = self.active_processor(package.content)
+            package.content = result
+            self.submit_work(package)
 
     def join_network(self, address, port):
         self.send_message(address, port, "worker-join", {"web":self.httpport})
@@ -47,19 +46,20 @@ class Worker(Parallel):
                               message["data"]["web"]))
 
     # send byte buffer to the chief containing a fragment result
-    def submit_work(self, result:bytes, job_name:str, module_name:str):
+    def submit_work(self, package:Fragment):
         
-        print(f"uploading fragment to, {self.supervisors}")
         addr = self.supervisors[0][0]
         port = self.supervisors[0][2]
-        print(addr, port)
-        headers = {"job-name": job_name,
+        headers = {"job-name": package.job_name,
                    "worker-name": f"{self.address},{self.httpport}",
-                   "module-name":module_name}
+                   "module-name":package.module_name,
+                   "frag-name":package.fragment_name,
+                   "frag-order":str(package.order)}
         
         requests.post(f"http://{addr}:{port}/submit/work",
                                  headers=headers,
-                                 data=result)
+                                 data=package.content)
+        del package
 
     def load_processor_module(self, module_path:str):
         spec = importlib.util.spec_from_file_location("processor", f"{module_path}Processor/Processor.py")

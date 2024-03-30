@@ -4,6 +4,8 @@ import os
 import random
 import uuid
 import pkg_resources
+import datetime
+from protocol import Fragment
 import subprocess
 from utils import import_module_dependencies
 
@@ -13,6 +15,10 @@ class ChiefHttpHandler(BaseHTTPRequestHandler):
         self.merger=None
         super().__init__(*args, **kwargs)
 
+    def log_message(self, format: str, *args) -> None:
+        # implement loggin here
+        pass
+
     def process_submission(self):    # worker
         content_length = int(self.headers['Content-Length'])
 
@@ -21,10 +27,14 @@ class ChiefHttpHandler(BaseHTTPRequestHandler):
         worker_info = (worker_info[0],"",worker_info[-1])
         job_name = str(self.headers['job-name'])
         module_name = str(self.headers['module-name'])
+        fragment_name = str(self.headers['frag-name'])
+        order = int(self.headers['frag-order'])
         
         result_buffer:bytes = self.rfile.read(content_length)
         
-        self.chief.result_channel.put((result_buffer, job_name, module_name, worker_info))
+        package = Fragment(fragment_name, order, result_buffer, module_name, job_name)
+
+        self.chief.result_channel.put((worker_info, package))
 
         self.send_response(200)
         self.end_headers()
@@ -80,6 +90,8 @@ class ChiefHttpHandler(BaseHTTPRequestHandler):
     def activate_network(self): # client
         # load splitter module and aquire the generator
         # segment multipart form data
+        self.chief.job_start_time = datetime.datetime.now()
+
         module_name = str(self.headers['module-name'])
         dataset_name = str(self.headers['dataset-name'])
 
