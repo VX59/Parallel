@@ -169,9 +169,9 @@ class Chief(Parallel):
         return merger.Merge
 
     # distribute the first round of fragments to the workers
-    def distribute_first_round(self, splitter, module_name:str, job_name:str):
+    def distribute_first_round(self, module_name:str, job_name:str):
         for worker in self.workers:
-            fragment:bytes = next(splitter)
+            fragment:bytes = next(self.splitter_generator)
             fragname = f"{str(uuid.uuid4().hex)}.fragment"
             fragment_path = f"/app/resources/jobs/{job_name}/fragment-cache/{fragname}"
             

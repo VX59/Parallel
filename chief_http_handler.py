@@ -87,7 +87,7 @@ class ChiefHttpHandler(BaseHTTPRequestHandler):
         module_path:str = f"/app/resources/modules/{module_name}/"
 
         self.chief.splitter_generator = self.chief.load_splitter_module(module_path, job_name, dataset_name)
-        self.chief.distribute_first_round(self.chief.splitter_generator, module_name, job_name)
+        self.chief.distribute_first_round(module_name, job_name)
         
         self.send_response(200)
         self.end_headers()
