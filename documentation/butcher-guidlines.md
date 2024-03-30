@@ -49,16 +49,14 @@ This is a toy example that may help you picture whats going on here.
 ### Sample Split.py
 
 ```python
-import numpy as np
-
+# example generator for a text file
 def splitter(dataset_path:str):
-    # example generator for an npy file (numpy array)
     with open(path, "rb") as file:
         while True:
             fragment:bytes = file.read(64) # the fragment size in bytes
             if not fragment:
                 break
-            yield np.frombuffer(fragment, dtype=np.int16)
+            yield fragment
 ```
 ### Sample Merge.py
 ```python

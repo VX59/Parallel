@@ -17,14 +17,7 @@ class Worker(Parallel):
         self.active_processor = None
         self.quit = False
 
-        super().__init__(address, port, rpcs, httpport)
-
-        channel_processor = threading.Thread(target=self.handle_items, name="channel processor")
-
-        http_server = ThreadingHTTPServer(("", httpport), lambda *args, **kwargs: WorkerHttpHandler(self, *args, **kwargs)).serve_forever
-        http_thread = threading.Thread(target=http_server,name="http-server")
-        channel_processor.start()
-        http_thread.start()
+        super().__init__(address, port, rpcs, httpport, WorkerHttpHandler, self.handle_items)
 
     # process items from the channel (fragments) .. blocks the thread until the channel has at least 1 item
     def handle_items(self):

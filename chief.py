@@ -20,37 +20,48 @@ class Chief(Parallel):
         rpcs = {"worker-join":self.worker_join}
         self.contracts = []
         self.workers = []
-        self.result_channel = queue.Queue()
+        self.result_channel = queue.Queue() # python channel
+
         self.splitter_generator=None
-        self.quit = False
+        self.merger=None
+        self.quit=False
 
-        super().__init__(address, port, rpcs, httpport)
-
-        channel_processor = threading.Thread(target=self.handle_items, name="channel processor")
-
-        http_server = ThreadingHTTPServer(("", httpport), lambda *args, **kwargs: ChiefHttpHandler(self, *args, **kwargs)).serve_forever
-        http_thread = threading.Thread(target=http_server,name="http-server")
-        channel_processor.start()
-        http_thread.start()
+        super().__init__(address, port, rpcs, httpport, ChiefHttpHandler, self.handle_items)
 
     # process channel items (results)
     def handle_items(self):
-        print("starting result channel reader")
         while not self.quit:
             result, job_name, module_name, worker_info = self.result_channel.get()
             print("accepted a result")
-
-            print("result", result)
-            # merge result here
-
+            
             # send next fragment
-            next_fragment = next(self.splitter_generator)
-            print("new fragment", next_fragment)
-            if next_fragment != None:
-                self.activate_worker(worker_info,next_fragment,module_name, job_name)
-            else:
-                print("done")
+            try:
+                next_fragment = next(self.splitter_generator)
+                print("new fragment", next_fragment)
+                
+                fragname = f"{str(uuid.uuid4().hex)}.fragment"
+                fragment_path = f"/app/resources/jobs/{job_name}/fragment-cache/{fragname}"
+                
+                with open(fragment_path, "wb") as file: # cache it
+                    file.write(next_fragment)
+                    file.close()
 
+                self.activate_worker(worker_info,next_fragment,module_name, job_name)
+            
+            except StopIteration:
+                # prepare result for delivery to client
+                print("input space exhausted")
+            
+            result_path = f"/app/resources/jobs/{job_name}/results/"
+            module_path = f"/app/resources/modules/{module_name}/"
+
+            if self.merger == None:
+                self.merger = self.load_merger_module(module_path)
+            
+            self.merger(result, result_path)
+            
+            # remove the fragment from the cache
+            
     # add a worker to the network
     def worker_join(self, message:dict):
         worker_info = (message['sender'][0],
@@ -149,6 +160,13 @@ class Chief(Parallel):
 
             Split = splitter.Split
             return Split(f"/app/resources/jobs/{job_name}/data-files/{dataset_name}")   # generator
+
+    def load_merger_module(self, module_path:str):
+        spec = importlib.util.spec_from_file_location("merger", f"{module_path}Butcher/Merge.py")
+        merger = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(merger)
+        
+        return merger.Merge
 
     # distribute the first round of fragments to the workers
     def distribute_first_round(self, splitter, module_name:str, job_name:str):

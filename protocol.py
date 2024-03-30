@@ -1,11 +1,11 @@
 import socket
 import threading
 import json
-from http.server import HTTPServer
+from http.server import HTTPServer, ThreadingHTTPServer
 
 class Parallel():
     # create a socket listener, then create message handler
-    def __init__(self,address:str,port:int, rpcs:dict, httpport:int):
+    def __init__(self,address:str,port:int, rpcs:dict, httpport:int, httpHandler, itemHandler):
         self.address:str = address
         self.port:int = port
         self.httpport:int = httpport
@@ -17,8 +17,16 @@ class Parallel():
         self.server.listen(0)
 
         print(self.address +" is accepting connections on " + str(self.port))
+        
         self.receiver = threading.Thread(target=self.message_handler,name="message-handler")
+        self.channel_processor = threading.Thread(target=itemHandler, name="channel processor")
+        
+        http_server = ThreadingHTTPServer(("", httpport), lambda *args, **kwargs: httpHandler(self, *args, **kwargs)).serve_forever
+        self.http_thread = threading.Thread(target=http_server,name="http-server")
+
         self.receiver.start() 
+        self.channel_processor.start()
+        self.http_thread.start()
 
     # block thread until receiving a connection, deserialize message and map to an rpc
     def message_handler(self):

@@ -1,7 +1,5 @@
 # append the result fragments to a file
-def Merge(fragment:bytes, job_name:str):
-    resultpath=f"/app/resources/{job_name}/results/result"
-
-    with open(resultpath, "ab") as file:
-        file.write(file, fragment)
+def Merge(fragment:bytes, result_path:str):
+    with open(result_path+"result.txt", "ab") as file:
+        file.write(fragment)
         file.close()

@@ -1,5 +1,3 @@
-import numpy as np
-
 def Split(path:str):    # example generator for an npy file (numpy array)
     with open(path, "rb") as file:
         while True:
