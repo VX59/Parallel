@@ -3,7 +3,7 @@ import signal
 import requests
 from chief_http_handler import ChiefHttpHandler
 from protocol import Parallel
-from http.server import HTTPServer
+from http.server import HTTPServer, ThreadingHTTPServer
 import threading
 import os
 import sys
@@ -11,6 +11,8 @@ from utils import parse_file, create_archive
 import subprocess
 import pkg_resources
 import importlib
+import uuid
+import queue
 
 class Chief(Parallel):
     # creates a new group and start a docker container http server
@@ -18,22 +20,48 @@ class Chief(Parallel):
         rpcs = {"worker-join":self.worker_join}
         self.contracts = []
         self.workers = []
-        
+        self.result_channel = queue.Queue()
+        self.splitter_generator=None
+        self.quit = False
+
         super().__init__(address, port, rpcs, httpport)
-        http_server = HTTPServer(("", httpport), lambda *args, **kwargs: ChiefHttpHandler(self, *args, **kwargs)).serve_forever
+
+        channel_processor = threading.Thread(target=self.handle_items, name="channel processor")
+
+        http_server = ThreadingHTTPServer(("", httpport), lambda *args, **kwargs: ChiefHttpHandler(self, *args, **kwargs)).serve_forever
         http_thread = threading.Thread(target=http_server,name="http-server")
+        channel_processor.start()
         http_thread.start()
+
+    # process channel items (results)
+    def handle_items(self):
+        print("starting result channel reader")
+        while not self.quit:
+            result, job_name, module_name, worker_info = self.result_channel.get()
+            print("accepted a result")
+
+            print("result", result)
+            # merge result here
+
+            # send next fragment
+            next_fragment = next(self.splitter_generator)
+            print("new fragment", next_fragment)
+            if next_fragment != None:
+                self.activate_worker(worker_info,next_fragment,module_name, job_name)
+            else:
+                print("done")
 
     # add a worker to the network
     def worker_join(self, message:dict):
-        worker_address = message['sender'][0]
-        worker_port = int(message['sender'][1])
-        worker_httpport = int(message['data']['web'])
-        self.workers.append((worker_address,worker_port,worker_httpport))
-        print("worker joined", worker_address, worker_port, worker_httpport)
+        worker_info = (message['sender'][0],
+                       int(message['sender'][1]),
+                       int(message['data']['web']))
+        if worker_info not in self.workers:
+            self.workers.append(worker_info)
+            print(f"worker joined {worker_info}")
 
         data = {"supervisor":(self.address, self.port), "web":self.httpport}
-        self.send_message(worker_address,worker_port,"worker-accept",data)
+        self.send_message(worker_info[0],worker_info[1],"worker-accept",data)
 
     # upload a file to a worker
     def upload_file(self, endpoint:str, worker_address:str, worker_httpport:int, file_path:str, headers:dict):
@@ -42,7 +70,7 @@ class Chief(Parallel):
         
         response = requests.post(f"http://{worker_address}:{worker_httpport}/{endpoint}",
                                  headers=headers,
-                                 files={filename:open(file_path, 'rb')})
+                                 files={filename:open(file_path, 'rb')}, timeout=3)
         print(response)
 
     # upload processor files to all workers
@@ -52,10 +80,14 @@ class Chief(Parallel):
             self.upload_file("/upload/processor", worker_address, worker_httpport, proc_archive_path, headers)
 
     # trigger a worker with a fragment
-    def activate_worker(self, worker_info, fragment_path:str, module_name:str):
+    def activate_worker(self, worker_info, fragment:bytes, module_name:str, job_name:str):
         address,_,httpport = worker_info
-        headers = {'module-name':module_name}
-        self.upload_file("/upload/fragment",address,httpport,fragment_path, headers)
+        headers = {'module-name':module_name,
+                   'job-name':job_name}
+        response = requests.post(f"http://{address}:{httpport}/upload/fragment",
+                                 headers=headers,
+                                 data=fragment, timeout=3)
+        print(response)
 
     # create the directory for a new module
     def make_module_dir(self, module_path:str):
@@ -78,21 +110,6 @@ class Chief(Parallel):
                 with open(f"{module_path}Processor/{filename}", "wb") as writer:
                     writer.writelines(body)
                     writer.close()
-
-    # dynamically import dependencies in a module file
-    def import_module_dependencies(self, module_path:str):
-        installed_packages = pkg_resources.working_set
-        package_names = [package.key for package in installed_packages]
-
-        # aquaire dependencies from splitter
-        with open(f"{module_path}Butcher/Split.py", "r") as script:
-            lines = script.readlines()
-            dependencies = [line.split(" ")[1] for line in lines if "import" in line]
-            print(dependencies)
-            for dep in dependencies:
-                if dep != package_names:
-                    subprocess.run(["pip","install",dep])
-            script.close()
 
     # tar the processor for delivery to workers
     def write_processor_archive(self, module_path:str):
@@ -136,15 +153,15 @@ class Chief(Parallel):
     # distribute the first round of fragments to the workers
     def distribute_first_round(self, splitter, module_name:str, job_name:str):
         for worker in self.workers:
-            fragment = next(splitter)
-            fragname = f"str(uuid.uuid4().hex).fragment"
+            fragment:bytes = next(splitter)
+            fragname = f"{str(uuid.uuid4().hex)}.fragment"
             fragment_path = f"/app/resources/jobs/{job_name}/fragment-cache/{fragname}"
             
             with open(fragment_path, "wb") as file:
                 file.write(fragment)
                 file.close()
 
-            self.activate_worker(worker,fragment_path,module_name)
+            self.activate_worker(worker, fragment, module_name, job_name)
 
 if __name__ == "__main__":
     signal.signal(signal.SIGINT, lambda sig, frame: sys.exit(0))
