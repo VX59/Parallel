@@ -91,5 +91,5 @@ plt.show()
 print(result(2))
 
 # batch items if they are above the line, add them to batch buffer, if average size of batch_buffer is > model prediction for that size then send it
-# this allows us to batch fragments 3 and 4, we also batch 4 and 5
+# this allows us to batch fragments 3 and 4, we also batch 5 and 6
 # in this example for our 6 fragments we send a total of 4 post requests about 33% runtime improvement
