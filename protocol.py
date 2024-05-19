@@ -19,7 +19,7 @@ class Parallel():
         self.httpport:int = httpport
         self.rpcs:dict = rpcs
         self.quit = False
-        self.fragment_size_limit = 2<<12    # 8 KB
+        self.alpha = 2<<12    # 8 KB
 
         self.server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         self.server.bind(('0.0.0.0', self.port))
