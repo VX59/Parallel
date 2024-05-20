@@ -48,6 +48,7 @@ class Parallel():
     # connect to a listening socket, then serialize message and send it
     def send_message(self,address:str,port:int, mode:str, data:dict):
         recipient = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        print(address,port)
         recipient.connect((address,port))
 
         contents = {"sender": (self.address,self.port), "receiver": (address,port),

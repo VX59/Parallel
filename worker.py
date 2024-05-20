@@ -72,10 +72,13 @@ class Worker(Parallel):
 if __name__ == "__main__":
     args = sys.argv
 
+    
     address = args[1]
-    port = int(args[2])
-    httpport = int(args[3])
+    leadder_addr = args[2]
+    port = int(args[3])
+    httpport = int(args[4])
+
 
     test = Worker(address, port, httpport)
 
-    test.join_network(address, 11030)
+    test.join_network(leadder_addr, 11030)

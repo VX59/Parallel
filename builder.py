@@ -8,14 +8,13 @@ class Builder:
     def __init__(self, name:str,
                  port:int,
                  httpport:int,
-                 address:str=socket.gethostname(),
                  workdirs:list[str]=['/app/resources/jobs'],
                  dependencies:list[str]=['docker'],
                  required_files:list[str]=None):
         self.name = name
         self.port = port
         self.httpport = httpport
-        self.address = address
+        self.address = ""
         self.workdirs = workdirs
         self.dependencies = dependencies
         
@@ -42,10 +41,26 @@ class Builder:
         except:
             print(f"Container {name} not found, nothing to remove")
             
-        port_binding = {str(port)+'/tcp':('0.0.0.0',port),
-                            str(httpport)+"/tcp":('0.0.0.0',httpport)}
-        container = dclient.containers.run(image, name=name, tty=True, detach=True, ports=port_binding)
+        ports = {port:port,   httpport:httpport}
         
+        network_name = "parallel-network"
+        subnet = "192.168.1.0/24"
+        try:
+            dclient.networks.get(network_name)
+        except docker.errors.NotFound:
+            dclient.networks.create(network_name,
+                                    driver="bridge",
+                                    ipam=docker.types.IPAMConfig(
+                                        pool_configs=[docker.types.IPAMPool(subnet=subnet)]))
+
+        container = dclient.containers.run(image, 
+                                           name=name, 
+                                           tty=True, 
+                                           detach=True, 
+                                           ports=ports,
+                                           network=network_name)
+        container.reload()
+        self.address = container.attrs['NetworkSettings']['Networks'][network_name]['IPAddress']
         return container
             
     def setup_environment(self):

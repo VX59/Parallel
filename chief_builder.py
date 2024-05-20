@@ -8,4 +8,5 @@ chief = Builder("Parallel-Chief", 11030, 11040,
                 workdirs=['/app/resources/modules/module_archives', '/app/resources/jobs'],
                 dependencies=['requests', 'docker'])
 
-chief.start(f"python /app/chief.py host.docker.internal {chief.port} {chief.httpport}")
+print(chief.address,chief.port)
+chief.start(f"python /app/chief.py {chief.address} {chief.port} {chief.httpport}")
