@@ -41,17 +41,28 @@ class Builder:
         except:
             print(f"Container {name} not found, nothing to remove")
             
-        ports = {port:port,   httpport:httpport}
-        
+        ports = {str(port)+"/tcp":port,   str(httpport)+"/tcp":httpport}     
+
         network_name = "parallel-network"
         subnet = "192.168.1.0/24"
+        gateway = "192.168.1.1"
+        parent = "eno1"
+
         try:
             dclient.networks.get(network_name)
         except docker.errors.NotFound:
             dclient.networks.create(network_name,
-                                    driver="bridge",
+                                    driver="macvlan",
                                     ipam=docker.types.IPAMConfig(
-                                        pool_configs=[docker.types.IPAMPool(subnet=subnet)]))
+                                        pool_configs=[
+                                            docker.types.IPAMPool(
+                                                subnet=subnet,
+                                                gateway=gateway
+                                            )
+                                        ]), options={
+                                        "parent": parent
+                                        }
+                                    )
 
         container = dclient.containers.run(image, 
                                            name=name, 
